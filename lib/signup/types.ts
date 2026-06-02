@@ -1,56 +1,79 @@
-export interface SampleWriting {
-  platform: "x" | "blog" | "linkedin" | "";
+/**
+ * Signup Wizard — Type Definitions
+ * Phase 4.2ب-1 — Tone expanded to 5 values (added concise)
+ */
+
+export type SampleWriting = {
+  platform: "x" | "blog" | "linkedin";
   topic: string;
   text: string;
-}
+};
+
+export type Tone =
+  | "formal"
+  | "friendly"
+  | "educational"
+  | "analytical"
+  | "concise";
+
+export type PreferredLength = "short_tweet" | "medium_post" | "long_article";
 
 export interface SignupFormData {
-  // Step 1: Basic Info
-  fullName: string;
+  // Step 1 — Basic Info
+  full_name: string;
   email: string;
   phone: string;
-  licenseNumber: string;
-  xHandle: string;
-  blogUrl: string;
-  bioShort: string;
+  license_number: string;
+  x_handle: string;
+  blog_url: string;
+  bio_short: string;
 
-  // Step 2: Specialty
-  primarySpecialtyId: string;
+  // Step 2 — Specialty (MVP: commercial only)
+  specialty_slug: string;
 
-  // Step 3: Writing Style
-  targetAudience: string;
-  tone: "formal" | "friendly" | "educational" | "analytical" | "";
-  preferredLength: "short_tweet" | "medium_post" | "long_article" | "";
-  favoritePhrases: string[];
-  avoidedPhrases: string[];
-  styleNotes: string;
+  // Step 3 — Writing Style
+  target_audience: string;
+  tone: Tone | "";
+  preferred_length: PreferredLength | "";
+  favorite_phrases: string[];
+  avoided_phrases: string[];
+  style_notes: string;
 
-  // Step 4: Samples
-  samples: SampleWriting[];
+  // Step 4 — Writing Samples
+  sample_writings: SampleWriting[];
 
-  // Step 5: Distribution
-  telegramEnabled: boolean;
-  emailEnabled: boolean;
-  preferredSendHour: number;
+  // Step 5 — Notification Preferences
+  telegram_enabled: boolean;
+  email_enabled: boolean;
+  preferred_send_hour: number;
 }
 
 export const INITIAL_FORM_DATA: SignupFormData = {
-  fullName: "",
+  // Step 1
+  full_name: "",
   email: "",
   phone: "",
-  licenseNumber: "",
-  xHandle: "",
-  blogUrl: "",
-  bioShort: "",
-  primarySpecialtyId: "",
-  targetAudience: "",
+  license_number: "",
+  x_handle: "",
+  blog_url: "",
+  bio_short: "",
+
+  // Step 2
+  specialty_slug: "commercial",
+
+  // Step 3
+  target_audience: "",
   tone: "",
-  preferredLength: "",
-  favoritePhrases: [],
-  avoidedPhrases: [],
-  styleNotes: "",
-  samples: [],
-  telegramEnabled: true,
-  emailEnabled: true,
-  preferredSendHour: 8,
+  preferred_length: "",
+  favorite_phrases: [],
+  avoided_phrases: [],
+  style_notes: "",
+
+  // Step 4
+  sample_writings: [],
+
+  // Step 5
+  telegram_enabled: true,
+  email_enabled: true,
+  preferred_send_hour: 8,
 };

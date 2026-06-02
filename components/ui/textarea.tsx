@@ -1,31 +1,61 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface TextareaProps
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
   hint?: string;
+  required?: boolean;
 }
 
-export function Textarea({ label, error, hint, className, ...props }: TextareaProps) {
-  return (
-    <div className="space-y-1.5">
-      {label && (
-        <label className="block text-sm font-medium text-content">
-          {label}
-        </label>
-      )}
-      <textarea
-        {...props}
-        className={cn(
-          "w-full px-4 py-2.5 rounded-lg bg-elevated border border-line text-content",
-          "placeholder:text-muted text-sm leading-relaxed resize-y",
-          "focus:outline-none focus:ring-2 focus:ring-lawyer focus:border-transparent transition",
-          error && "border-danger",
-          className
+const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, label, error, hint, required, id, value, rows = 4, ...props }, ref) => {
+    const textareaId = id || React.useId();
+
+    return (
+      <div className="flex flex-col gap-2 w-full">
+        {label && (
+          <label
+            htmlFor={textareaId}
+            className="text-sm font-medium text-text-primary"
+          >
+            {label}
+            {required && <span className="text-danger mr-1">*</span>}
+          </label>
         )}
-      />
-      {hint && !error && <p className="text-xs text-muted">{hint}</p>}
-      {error && <p className="text-xs text-danger">{error}</p>}
-    </div>
-  );
-}
+        <textarea
+          id={textareaId}
+          ref={ref}
+          rows={rows}
+          dir="auto"
+          value={value ?? ""}
+          className={cn(
+            "w-full px-4 py-2.5 rounded-lg resize-y",
+            "bg-bg-elevated text-text-primary",
+            "border border-border",
+            "placeholder:text-text-secondary",
+            "focus:outline-none focus:ring-2 focus:ring-accent-lawyer focus:border-transparent",
+            "transition-colors duration-150",
+            error && "border-danger focus:ring-danger",
+            className
+          )}
+          aria-invalid={error ? "true" : "false"}
+          {...props}
+        />
+        {error && (
+          <p className="text-xs text-danger" role="alert">
+            {error}
+          </p>
+        )}
+        {hint && !error && (
+          <p className="text-xs text-text-secondary">{hint}</p>
+        )}
+      </div>
+    );
+  }
+);
+
+Textarea.displayName = "Textarea";
+
+export { Textarea };
