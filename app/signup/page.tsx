@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/brand-mark";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { StepBasicInfo } from "@/components/signup/step-basic-info";
@@ -117,6 +118,9 @@ export default function SignupPage() {
   const [formData, setFormData] =
     React.useState<SignupFormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = React.useState<StepErrors>({});
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const router = useRouter();
 
   const updateForm = (patch: Partial<SignupFormData>) => {
     setFormData((prev) => ({ ...prev, ...patch }));
@@ -152,6 +156,68 @@ export default function SignupPage() {
     setErrors({});
     if (currentStep > 1) {
       setCurrentStep((s) => s - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    let stepErrors: StepErrors = {};
+    try {
+      const validator = VALIDATORS[currentStep];
+      if (validator) stepErrors = validator(formData);
+    } catch (e) {
+      console.error("Validation exception:", e);
+    }
+
+    if (Object.keys(stepErrors).length > 0) {
+      setErrors(stepErrors);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    const payload = {
+      full_name: formData.full_name,
+      email: formData.email,
+      target_audience: formData.target_audience,
+      writing_style: formData.tone,
+      preferred_length: formData.preferred_length,
+      favorite_phrases: formData.favorite_phrases || [],
+      avoided_phrases: formData.avoided_phrases || [],
+      style_notes: formData.style_notes || "",
+      writing_samples: (formData.sample_writings || []).map((s) => ({
+        platform: s.platform,
+        topic: s.topic,
+        text: s.text,
+      })),
+      telegram_enabled: formData.telegram_enabled,
+      email_enabled: formData.email_enabled,
+      preferred_send_hour: formData.preferred_send_hour,
+    };
+
+    try {
+      const response = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        setSubmitError(result.error || "حدث خطأ أثناء التسجيل");
+        setIsSubmitting(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      router.push(`/signup/success?email=${encodeURIComponent(formData.email)}`);
+    } catch (err) {
+      console.error("Submit error:", err);
+      setSubmitError("تعذّر الاتصال بالخادم. حاول مرّة أخرى.");
+      setIsSubmitting(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -221,7 +287,13 @@ export default function SignupPage() {
             {renderStep()}
           </div>
 
-          <div className="flex items-center justify-between gap-4">
+          {submitError && (
+          <div className="bg-danger/10 border border-danger/40 text-danger text-sm rounded-lg p-3 text-center">
+            {submitError}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-4">
             <button
               type="button"
               onClick={handlePrev}
@@ -238,16 +310,18 @@ export default function SignupPage() {
 
             {isLastStep ? (
               <button
-                type="button"
-                disabled
-                className={cn(
-                  "px-6 py-2.5 rounded-lg text-sm font-medium",
-                  "bg-bg-elevated text-text-secondary",
-                  "cursor-not-allowed border border-border"
-                )}
-              >
-                إرسال (قادم في 4.2ب-2)
-              </button>
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className={cn(
+                "px-6 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "bg-accent-lawyer text-bg-primary",
+                "hover:opacity-90",
+                "disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
+            >
+              {isSubmitting ? "جاري الإرسال..." : "إرسال"}
+            </button>
             ) : (
               <button
                 type="button"
