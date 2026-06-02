@@ -31,19 +31,19 @@ function validateStep1(data: SignupFormData): StepErrors {
   const errors: StepErrors = {};
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!data.full_name.trim()) {
+  if (!data.full_name || !data.full_name.trim()) {
     errors.full_name = "الاسم الكامل مطلوب.";
   } else if (data.full_name.trim().length < 3) {
     errors.full_name = "الاسم قصير جدًّا.";
   }
 
-  if (!data.email.trim()) {
+  if (!data.email || !data.email.trim()) {
     errors.email = "البريد الإلكترونيّ مطلوب.";
   } else if (!emailRegex.test(data.email.trim())) {
     errors.email = "صيغة البريد غير صحيحة.";
   }
 
-  if (data.blog_url.trim() && !data.blog_url.startsWith("http")) {
+  if (data.blog_url && data.blog_url.trim() && !data.blog_url.startsWith("http")) {
     errors.blog_url = "الرابط يجب أن يبدأ بـ http أو https.";
   }
 
@@ -61,7 +61,7 @@ function validateStep2(data: SignupFormData): StepErrors {
 function validateStep3(data: SignupFormData): StepErrors {
   const errors: StepErrors = {};
 
-  if (!data.target_audience.trim()) {
+  if (!data.target_audience || !data.target_audience.trim()) {
     errors.target_audience = "حدّد جمهورك المستهدف.";
   }
 
@@ -78,8 +78,9 @@ function validateStep3(data: SignupFormData): StepErrors {
 
 function validateStep4(data: SignupFormData): StepErrors {
   const errors: StepErrors = {};
-  const completed = data.sample_writings.filter(
-    (s) => s.platform && s.topic.trim() && s.text.trim()
+  const samples = data.sample_writings || [];
+  const completed = samples.filter(
+    (s) => s && s.platform && s.topic && s.topic.trim() && s.text && s.text.trim()
   );
 
   if (completed.length < 3) {
@@ -103,13 +104,13 @@ function validateStep5(data: SignupFormData): StepErrors {
   return errors;
 }
 
-const VALIDATORS = {
+const VALIDATORS: Record<number, (d: SignupFormData) => StepErrors> = {
   1: validateStep1,
   2: validateStep2,
   3: validateStep3,
   4: validateStep4,
   5: validateStep5,
-} as const;
+};
 
 export default function SignupPage() {
   const [currentStep, setCurrentStep] = React.useState(1);
@@ -122,15 +123,28 @@ export default function SignupPage() {
   };
 
   const handleNext = () => {
-    const validator = VALIDATORS[currentStep as keyof typeof VALIDATORS];
-    const stepErrors = validator(formData);
+    let stepErrors: StepErrors = {};
+
+    try {
+      const validator = VALIDATORS[currentStep];
+      if (validator) {
+        stepErrors = validator(formData);
+      }
+    } catch (e) {
+      console.error("Validation exception:", e);
+      stepErrors = {};
+    }
+
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+
     setErrors({});
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep((s) => s + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -162,7 +176,6 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary">
-      {/* Header */}
       <header className="border-b border-border bg-bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
@@ -185,10 +198,8 @@ export default function SignupPage() {
         </div>
       </header>
 
-      {/* Main */}
       <main className="max-w-3xl mx-auto px-6 py-10">
         <div className="flex flex-col gap-8">
-          {/* Title */}
           <div className="flex flex-col gap-2 text-center">
             <h1 className="text-3xl md:text-4xl font-display font-bold text-text-primary">
               إنشاء حسابك
@@ -198,7 +209,6 @@ export default function SignupPage() {
             </p>
           </div>
 
-          {/* Progress */}
           <div className="bg-bg-card border border-border rounded-xl p-6">
             <ProgressBar
               current={currentStep}
@@ -207,12 +217,10 @@ export default function SignupPage() {
             />
           </div>
 
-          {/* Step Content */}
           <div className="bg-bg-card border border-border rounded-xl p-6 md:p-8">
             {renderStep()}
           </div>
 
-          {/* Navigation */}
           <div className="flex items-center justify-between gap-4">
             <button
               type="button"
@@ -237,7 +245,6 @@ export default function SignupPage() {
                   "bg-bg-elevated text-text-secondary",
                   "cursor-not-allowed border border-border"
                 )}
-                title="سيُفعَّل في Phase 4.2ب-2"
               >
                 إرسال (قادم في 4.2ب-2)
               </button>
