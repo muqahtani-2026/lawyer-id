@@ -1,17 +1,37 @@
-import { createClient } from "@/lib/supabase/server";
+import {
+  getLawyerStats,
+  getDraftStats,
+  getQualityAvg,
+  getDailyDrafts,
+  getTopLawyers,
+  getRecentActivity,
+} from "@/lib/queries/admin";
+import { AdminKpiCard } from "@/components/admin/AdminKpiCard";
+import {
+  DailyDraftsChart,
+  TopLawyersDonut,
+} from "@/components/admin/AdminCharts";
+import { ActivityFeed } from "@/components/admin/ActivityFeed";
 
 export default async function AdminOverviewPage() {
-  // Quick smoke test: count profiles (admin can see all via RLS extension)
-  const supabase = await createClient();
-  const { count: lawyerCount } = await supabase
-    .from("profiles")
-    .select("*", { count: "exact", head: true });
-  const { count: draftCount } = await supabase
-    .from("content_drafts")
-    .select("*", { count: "exact", head: true });
+  const [
+    lawyerStats,
+    draftStats,
+    qualityStats,
+    dailyDrafts,
+    topLawyers,
+    recentActivity,
+  ] = await Promise.all([
+    getLawyerStats(),
+    getDraftStats(),
+    getQualityAvg(),
+    getDailyDrafts(7),
+    getTopLawyers(5),
+    getRecentActivity(10),
+  ]);
 
   return (
-    <div className="p-8 md:p-12 max-w-6xl mx-auto" style={{ direction: "rtl" }}>
+    <div className="p-8 md:p-12 max-w-7xl mx-auto" style={{ direction: "rtl" }}>
       {/* Header */}
       <header className="mb-10">
         <div className="flex items-baseline gap-3 mb-2">
@@ -22,69 +42,76 @@ export default async function AdminOverviewPage() {
             ADMIN · OVERVIEW
           </span>
           <span className="text-xs font-mono tracking-wider text-[#8892b0]">
-            Phase 6.1.a
+            Phase 6.1.b
           </span>
         </div>
         <h1 className="text-3xl md:text-4xl font-bold mb-3">
           نَظْرة عامّة على المنصّة
         </h1>
         <p className="text-[#8892b0] leading-relaxed max-w-2xl">
-          مرحبًا بك في لوحة الإدارة. الـ KPIs الكاملة والرسوم البيانية قادمة في
-          Phase 6.1.b. هذه صفحة تأكيد لعمل الـ route protection.
+          إحصاءات شاملة عن جميع المحامين والمسوّدات على Lawyer ID.
         </p>
       </header>
 
-      {/* Smoke-test KPIs (quick counters to verify admin RLS access) */}
+      {/* 6 KPI Cards */}
       <section
-        className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10"
-        aria-label="Smoke test counters"
+        className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10"
+        aria-label="KPIs"
       >
-        <div className="bg-[#0f1f3d] border border-[#1d3461] rounded-xl p-6">
-          <div
-            className="text-xs font-mono tracking-wider mb-2"
-            style={{ color: "#fbbf24" }}
-          >
-            TOTAL LAWYERS
-          </div>
-          <div className="text-4xl font-bold font-mono">
-            {lawyerCount ?? "—"}
-          </div>
-          <div className="text-xs text-[#8892b0] mt-2">
-            (يقرأ كلّ الـ profiles عبر admin RLS)
-          </div>
-        </div>
-
-        <div className="bg-[#0f1f3d] border border-[#1d3461] rounded-xl p-6">
-          <div
-            className="text-xs font-mono tracking-wider mb-2"
-            style={{ color: "#fbbf24" }}
-          >
-            TOTAL DRAFTS
-          </div>
-          <div className="text-4xl font-bold font-mono">
-            {draftCount ?? "—"}
-          </div>
-          <div className="text-xs text-[#8892b0] mt-2">
-            (يقرأ كلّ الـ content_drafts عبر admin RLS)
-          </div>
-        </div>
+        <AdminKpiCard
+          label="TOTAL LAWYERS"
+          value={lawyerStats.total}
+          subtext="إجماليّ المحامين المسجّلين"
+        />
+        <AdminKpiCard
+          label="PENDING REVIEW"
+          value={draftStats.pending}
+          subtext="بانتظار مراجعة المحامي"
+          tone="warning"
+        />
+        <AdminKpiCard
+          label="APPROVED · 7 DAYS"
+          value={draftStats.approvedThisWeek}
+          subtext="مسوّدات مُعتمدة هذا الأسبوع"
+          tone="success"
+        />
+        <AdminKpiCard
+          label="QUALITY AVG"
+          value={
+            qualityStats.avg !== null ? `${qualityStats.avg}/100` : "—"
+          }
+          subtext={
+            qualityStats.count > 0
+              ? `من ${qualityStats.count} مسوّدة مُقيَّمة`
+              : "لا توجد تقييمات بعد"
+          }
+        />
+        <AdminKpiCard
+          label="PUBLISHED"
+          value={draftStats.published}
+          subtext="إجماليّ المسوّدات المنشورة"
+          tone="success"
+        />
+        <AdminKpiCard
+          label="REJECTED"
+          value={draftStats.rejected}
+          subtext="إجماليّ المسوّدات المرفوضة"
+          tone="danger"
+        />
       </section>
 
-      {/* What's next */}
-      <section className="bg-[#0f1f3d] border border-[#1d3461] rounded-xl p-6 md:p-8">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span
-            className="inline-block w-2 h-2 rounded-full"
-            style={{ backgroundColor: "#fbbf24" }}
-          />
-          ما القادم في Phase 6.1.b
-        </h2>
-        <ul className="space-y-2 text-sm text-[#8892b0] leading-relaxed">
-          <li>• 6 KPI cards: محامون، مسوّدات (pending/approved/published)، quality avg.</li>
-          <li>• رسم خطّي: مسوّدات يوميًّا (آخر 7 أيّام).</li>
-          <li>• رسم دائريّ: top 5 محامين حسب عدد المسوّدات.</li>
-          <li>• Activity feed: آخر 10 أحداث على المنصّة.</li>
-        </ul>
+      {/* Charts Row */}
+      <section
+        className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-10"
+        aria-label="Charts"
+      >
+        <DailyDraftsChart data={dailyDrafts} />
+        <TopLawyersDonut data={topLawyers} />
+      </section>
+
+      {/* Activity Feed */}
+      <section aria-label="Recent activity">
+        <ActivityFeed events={recentActivity} />
       </section>
     </div>
   );
