@@ -27,10 +27,14 @@ export type AdminLawyerDetail = {
   };
   lawyer_profile: {
     writing_style: string | null;
-    tone: string | null;
-    target_length: string | null;
+    preferred_length: string | null;
     target_audience: string | null;
-    bio: string | null;
+    style_notes: string | null;
+    role: string | null;
+    years_experience: number | null;
+    favorite_phrases: string[] | null;
+    avoided_phrases: string[] | null;
+    interests: string[] | null;
   } | null;
   specialties: {
     id: string;
@@ -38,15 +42,18 @@ export type AdminLawyerDetail = {
     is_primary: boolean;
   }[];
   notification_prefs: {
-    delivery_method: string;
-    delivery_time: string;
+    telegram_enabled: boolean;
     telegram_chat_id: string | null;
+    email_enabled: boolean;
+    email_address: string | null;
+    preferred_send_hour: number;
   } | null;
   samples: {
     id: string;
     title: string | null;
-    platform: string;
+    sample_type: string;
     content_preview: string;
+    platform_context: string | null;
     created_at: string;
   }[];
   recent_drafts: {
@@ -63,11 +70,6 @@ export type AdminLawyerDetail = {
 // listLawyers — table data
 // ============================================================
 
-/**
- * Returns every profile + per-lawyer aggregates.
- * Strategy: 1 query for profiles → 4 parallel batch queries for related data → aggregate in memory.
- * Sufficient for ~100 lawyers; switch to SQL aggregation if scaling further.
- */
 export async function listLawyers(): Promise<AdminLawyerRow[]> {
   const supabase = await createClient();
 
@@ -80,7 +82,6 @@ export async function listLawyers(): Promise<AdminLawyerRow[]> {
 
   const userIds = profiles.map((p) => p.id);
 
-  // Parallel batch fetches for all related data
   const [draftsRes, userSpecsRes, lawyerProfsRes, samplesRes] =
     await Promise.all([
       supabase
@@ -101,7 +102,6 @@ export async function listLawyers(): Promise<AdminLawyerRow[]> {
         .in("user_id", userIds),
     ]);
 
-  // Build draft count + last activity maps
   const draftCounts = new Map<string, number>();
   const lastActivity = new Map<string, string>();
   (draftsRes.data ?? []).forEach((d: any) => {
@@ -113,7 +113,6 @@ export async function listLawyers(): Promise<AdminLawyerRow[]> {
     }
   });
 
-  // Build primary specialty map (need specialty names)
   const specIds = [
     ...new Set(
       (userSpecsRes.data ?? [])
@@ -133,7 +132,6 @@ export async function listLawyers(): Promise<AdminLawyerRow[]> {
     );
   }
 
-  // For each user, pick primary specialty (or first if no primary)
   const primarySpecMap = new Map<string, string>();
   (userSpecsRes.data ?? []).forEach((u: any) => {
     const name = specNameMap.get(u.specialty_id);
@@ -144,7 +142,6 @@ export async function listLawyers(): Promise<AdminLawyerRow[]> {
     }
   });
 
-  // Build profile completion + samples count maps
   const hasLawyerProfile = new Set<string>();
   (lawyerProfsRes.data ?? []).forEach((p: any) => {
     if (p.user_id) hasLawyerProfile.add(p.user_id);
@@ -174,17 +171,11 @@ export async function listLawyers(): Promise<AdminLawyerRow[]> {
 // getLawyerDetail — single lawyer full data
 // ============================================================
 
-/**
- * Returns full detail for a single lawyer or null if not found.
- * 6 parallel queries for: profile, lawyer_profile, user_specialties,
- * notification_prefs, writing_samples, content_drafts.
- */
 export async function getLawyerDetail(
   userId: string
 ): Promise<AdminLawyerDetail | null> {
   const supabase = await createClient();
 
-  // Profile must exist (gates everything else)
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, full_name, email, is_admin, created_at")
@@ -193,7 +184,6 @@ export async function getLawyerDetail(
 
   if (!profile) return null;
 
-  // Parallel fetches
   const [
     lawyerProfileRes,
     userSpecsRes,
@@ -203,7 +193,9 @@ export async function getLawyerDetail(
   ] = await Promise.all([
     supabase
       .from("lawyer_profiles")
-      .select("writing_style, tone, target_length, target_audience, bio")
+      .select(
+        "writing_style, preferred_length, target_audience, style_notes, role, years_experience, favorite_phrases, avoided_phrases, interests"
+      )
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
@@ -212,12 +204,14 @@ export async function getLawyerDetail(
       .eq("user_id", userId),
     supabase
       .from("notification_preferences")
-      .select("delivery_method, delivery_time, telegram_chat_id")
+      .select(
+        "telegram_enabled, telegram_chat_id, email_enabled, email_address, preferred_send_hour"
+      )
       .eq("user_id", userId)
       .maybeSingle(),
     supabase
       .from("writing_samples")
-      .select("id, title, platform, content, created_at")
+      .select("id, title, sample_text, sample_type, platform_context, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -252,12 +246,12 @@ export async function getLawyerDetail(
     is_primary: (s.is_primary as boolean) ?? false,
   }));
 
-  // Truncate sample content
   const samples = (samplesRes.data ?? []).map((s: any) => ({
     id: s.id as string,
     title: (s.title as string | null) ?? null,
-    platform: s.platform as string,
-    content_preview: ((s.content as string) ?? "").slice(0, 220),
+    sample_type: (s.sample_type as string) ?? "social",
+    content_preview: ((s.sample_text as string) ?? "").slice(0, 220),
+    platform_context: (s.platform_context as string | null) ?? null,
     created_at: s.created_at as string,
   }));
 
@@ -273,21 +267,36 @@ export async function getLawyerDetail(
       ? {
           writing_style:
             (lawyerProfileRes.data.writing_style as string | null) ?? null,
-          tone: (lawyerProfileRes.data.tone as string | null) ?? null,
-          target_length:
-            (lawyerProfileRes.data.target_length as string | null) ?? null,
+          preferred_length:
+            (lawyerProfileRes.data.preferred_length as string | null) ?? null,
           target_audience:
             (lawyerProfileRes.data.target_audience as string | null) ?? null,
-          bio: (lawyerProfileRes.data.bio as string | null) ?? null,
+          style_notes:
+            (lawyerProfileRes.data.style_notes as string | null) ?? null,
+          role: (lawyerProfileRes.data.role as string | null) ?? null,
+          years_experience:
+            (lawyerProfileRes.data.years_experience as number | null) ?? null,
+          favorite_phrases:
+            (lawyerProfileRes.data.favorite_phrases as string[] | null) ?? null,
+          avoided_phrases:
+            (lawyerProfileRes.data.avoided_phrases as string[] | null) ?? null,
+          interests:
+            (lawyerProfileRes.data.interests as string[] | null) ?? null,
         }
       : null,
     specialties,
     notification_prefs: notifPrefsRes.data
       ? {
-          delivery_method: notifPrefsRes.data.delivery_method as string,
-          delivery_time: notifPrefsRes.data.delivery_time as string,
+          telegram_enabled:
+            (notifPrefsRes.data.telegram_enabled as boolean) ?? false,
           telegram_chat_id:
             (notifPrefsRes.data.telegram_chat_id as string | null) ?? null,
+          email_enabled:
+            (notifPrefsRes.data.email_enabled as boolean) ?? false,
+          email_address:
+            (notifPrefsRes.data.email_address as string | null) ?? null,
+          preferred_send_hour:
+            (notifPrefsRes.data.preferred_send_hour as number) ?? 8,
         }
       : null,
     samples,
