@@ -1,7 +1,33 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+/**
+ * Route protection layer for Next.js 16 (proxy.ts, not middleware.ts).
+ *
+ * - /dashboard, /review, /profile  → require session
+ * - /admin/*                       → require session + is_admin = TRUE
+ * - /sign-in                       → redirect to /dashboard if signed in
+ */
+
+const PROTECTED_PATHS = ["/dashboard", "/review", "/profile", "/admin"];
+const GUEST_ONLY_PATHS = ["/sign-in"];
+
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  const isProtected = PROTECTED_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+  const isGuestOnly = GUEST_ONLY_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+  const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
+
+  // Fast path: ignore public routes
+  if (!isProtected && !isGuestOnly) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -25,48 +51,40 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: refreshes tokens + validates JWT server-side
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
-
-  // Routes that REQUIRE authentication
-  const protectedPaths = ["/dashboard", "/review", "/profile"];
-  const isProtected = protectedPaths.some((p) => path.startsWith(p));
-
-  // Routes that REDIRECT authenticated users away (no point being there)
-  const guestOnlyPaths = ["/sign-in"];
-  const isGuestOnly = guestOnlyPaths.some((p) => path === p);
-
-  // Unauthenticated user trying to access protected route
+  // 1. Protected path without session → /sign-in with redirect_to
   if (isProtected && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/sign-in";
-    url.searchParams.set("redirect_to", path);
-    return NextResponse.redirect(url);
+    const signInUrl = new URL("/sign-in", request.url);
+    signInUrl.searchParams.set("redirect_to", pathname);
+    return NextResponse.redirect(signInUrl);
   }
 
-  // Authenticated user trying to access guest-only route
+  // 2. Guest-only path with session → /dashboard
   if (isGuestOnly && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // 3. Admin path requires is_admin = TRUE
+  if (isAdminPath && user) {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+
+    if (error || !profile?.is_admin) {
+      const dashUrl = new URL("/dashboard", request.url);
+      dashUrl.searchParams.set("error", "admin_only");
+      return NextResponse.redirect(dashUrl);
+    }
   }
 
   return response;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico
-     * - files with extensions (images, fonts)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf)$).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };
