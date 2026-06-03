@@ -18,7 +18,7 @@ export default async function Home() {
             <BrandMark variant="lawyer" size="sm" />
             <span className="font-bold text-lg">Lawyer ID</span>
           </div>
-          <Link href="/signup" className="text-sm text-lawyer hover:underline">
+          <Link href="/sign-in" className="text-sm text-lawyer hover:underline">
             تسجيل الدخول
           </Link>
         </div>
