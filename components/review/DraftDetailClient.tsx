@@ -1,0 +1,453 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import {
+  approveDraft,
+  rejectDraft,
+  updateDraft,
+  publishDraft,
+} from "@/lib/actions/drafts";
+import type { DraftFull } from "@/lib/queries/review";
+
+// ============================================================
+// Helpers
+// ============================================================
+
+function formatAbsoluteDate(iso: string): string {
+  const date = new Date(iso);
+  try {
+    return new Intl.DateTimeFormat("ar", {
+      calendar: "gregory",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  } catch {
+    return date.toLocaleString();
+  }
+}
+
+function formatRelativeTime(iso: string): string {
+  const date = new Date(iso);
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "الآن";
+  if (minutes < 60) return `قبل ${minutes} دقيقة`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `قبل ${hours} ساعة`;
+  const days = Math.floor(hours / 24);
+  return `قبل ${days} يوم`;
+}
+
+const statusBadgeStyles: Record<string, string> = {
+  pending: "bg-[#3a2a0a] text-[#fbbf24] border-[#fbbf24]/30",
+  approved: "bg-[#0a3a1a] text-[#4ade80] border-[#4ade80]/30",
+  rejected: "bg-[#3a0a0a] text-[#ef4444] border-[#ef4444]/30",
+  published: "bg-[#152a4a] text-[#4a9eff] border-[#4a9eff]/30",
+};
+
+const statusLabels: Record<string, string> = {
+  pending: "بانتظار المراجعة",
+  approved: "مقبولة",
+  rejected: "مرفوضة",
+  published: "منشورة",
+};
+
+// ============================================================
+// Main Component
+// ============================================================
+
+export function DraftDetailClient({ draft }: { draft: DraftFull }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  // View/Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(draft.draft_title ?? "");
+  const [editSummary, setEditSummary] = useState(draft.draft_summary ?? "");
+  const [editContent, setEditContent] = useState(draft.draft_content);
+
+  // Reject dialog state
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
+  // Action feedback
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const showFeedback = (result: { success: boolean; error?: string }, successMsg: string) => {
+    if (result.success) {
+      setSuccess(successMsg);
+      setError(null);
+      setTimeout(() => setSuccess(null), 3000);
+      router.refresh();
+    } else {
+      setError(result.error ?? "خطأ غير متوقَّع");
+      setSuccess(null);
+    }
+  };
+
+  // Action handlers
+  const handleApprove = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await approveDraft(draft.id);
+      showFeedback(result, "تمّت الموافقة بنجاح.");
+    });
+  };
+
+  const handleReject = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await rejectDraft(draft.id, rejectReason);
+      if (result.success) {
+        setIsRejecting(false);
+        setRejectReason("");
+      }
+      showFeedback(result, "تمّ رفض المسوّدة.");
+    });
+  };
+
+  const handlePublish = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await publishDraft(draft.id);
+      showFeedback(result, "تمّ نشر المسوّدة.");
+    });
+  };
+
+  const handleSave = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await updateDraft(draft.id, {
+        draft_title: editTitle,
+        draft_summary: editSummary,
+        draft_content: editContent,
+      });
+      if (result.success) {
+        setIsEditing(false);
+      }
+      showFeedback(result, "تمّ حفظ التعديلات.");
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditTitle(draft.draft_title ?? "");
+    setEditSummary(draft.draft_summary ?? "");
+    setEditContent(draft.draft_content);
+    setIsEditing(false);
+  };
+
+  const statusKey = draft.status in statusBadgeStyles ? draft.status : "pending";
+  const displayTitle = draft.draft_title ?? draft.source_title ?? "بدون عنوان";
+
+  return (
+    <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
+      {/* Header — back link + status */}
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href="/review"
+          className="inline-flex items-center gap-2 text-sm text-[#8892b0] hover:text-[#4a9eff] transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+          العودة للقائمة
+        </Link>
+        <span className={cn("text-xs px-2.5 py-1 rounded border", statusBadgeStyles[statusKey])}>
+          {statusLabels[statusKey] ?? draft.status}
+        </span>
+      </div>
+
+      {/* Feedback bar */}
+      {(error || success) && (
+        <div
+          className={cn(
+            "p-3 rounded-md border text-sm",
+            error
+              ? "bg-[#3a0a0a] border-[#ef4444]/30 text-[#ef4444]"
+              : "bg-[#0a3a1a] border-[#4ade80]/30 text-[#4ade80]"
+          )}
+        >
+          {error ?? success}
+        </div>
+      )}
+
+      {/* Main card */}
+      <article className="bg-[#0f1f3d] border border-[#1d3461] rounded-lg p-6 md:p-8 space-y-6">
+        {/* Title + Summary */}
+        {isEditing ? (
+          <>
+            <div>
+              <label className="block text-xs text-[#8892b0] mb-1.5">العنوان</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                disabled={isPending}
+                className="w-full px-3 py-2 bg-[#0a192f] border border-[#1d3461] focus:border-[#4a9eff] rounded-md text-[#e6f1ff] text-base outline-none transition-colors"
+                style={{ fontFamily: "'Readex Pro', system-ui, sans-serif" }}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-[#8892b0] mb-1.5">الملخّص</label>
+              <textarea
+                value={editSummary}
+                onChange={(e) => setEditSummary(e.target.value)}
+                rows={2}
+                disabled={isPending}
+                className="w-full px-3 py-2 bg-[#0a192f] border border-[#1d3461] focus:border-[#4a9eff] rounded-md text-[#e6f1ff] text-sm outline-none transition-colors resize-none leading-relaxed"
+              />
+            </div>
+          </>
+        ) : (
+          <header>
+            <h1
+              className="text-2xl md:text-3xl font-bold text-[#e6f1ff] mb-3 leading-tight"
+              style={{ fontFamily: "'Readex Pro', system-ui, sans-serif" }}
+            >
+              {displayTitle}
+            </h1>
+            {draft.draft_summary && (
+              <p className="text-sm text-[#8892b0] leading-relaxed">{draft.draft_summary}</p>
+            )}
+          </header>
+        )}
+
+        {/* Meta row */}
+        <div className="flex items-center flex-wrap gap-x-5 gap-y-2 text-xs text-[#8892b0] pb-4 border-b border-[#1d3461]">
+          <span title={formatAbsoluteDate(draft.created_at)}>
+            أُنشئت {formatRelativeTime(draft.created_at)}
+          </span>
+          {draft.quality_score !== null && (
+            <span className="text-[#4a9eff]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+              جودة: {draft.quality_score}
+            </span>
+          )}
+          {draft.legal_branch && (
+            <span className="px-2 py-0.5 bg-[#152a4a] rounded">{draft.legal_branch}</span>
+          )}
+          {draft.draft_platform && (
+            <span className="px-2 py-0.5 bg-[#152a4a] rounded">{draft.draft_platform}</span>
+          )}
+          {draft.references_verified && (
+            <span className="text-[#4ade80] inline-flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              مراجع موثَّقة
+            </span>
+          )}
+        </div>
+
+        {/* Content */}
+        {isEditing ? (
+          <div>
+            <label className="block text-xs text-[#8892b0] mb-1.5">المحتوى</label>
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={14}
+              disabled={isPending}
+              className="w-full px-4 py-3 bg-[#0a192f] border border-[#1d3461] focus:border-[#4a9eff] rounded-md text-[#e6f1ff] text-base outline-none transition-colors resize-none leading-loose"
+              style={{ fontFamily: "'IBM Plex Sans Arabic', system-ui, sans-serif" }}
+            />
+          </div>
+        ) : (
+          <div
+            className="text-base text-[#e6f1ff] leading-loose whitespace-pre-wrap"
+            style={{ fontFamily: "'IBM Plex Sans Arabic', system-ui, sans-serif" }}
+          >
+            {draft.draft_content}
+          </div>
+        )}
+
+        {/* Tags */}
+        {draft.tags && draft.tags.length > 0 && !isEditing && (
+          <div className="pt-4 border-t border-[#1d3461]">
+            <div className="text-xs text-[#8892b0] mb-2">الوسوم:</div>
+            <div className="flex flex-wrap gap-2">
+              {draft.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs px-2.5 py-1 bg-[#152a4a] border border-[#1d3461] rounded-full text-[#e6f1ff]"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Regulatory references */}
+        {draft.regulatory_references && draft.regulatory_references.length > 0 && !isEditing && (
+          <div className="pt-4 border-t border-[#1d3461]">
+            <div className="text-xs text-[#8892b0] mb-2">المراجع النظاميّة:</div>
+            <ul className="space-y-1">
+              {draft.regulatory_references.map((ref, idx) => (
+                <li key={idx} className="text-sm text-[#e6f1ff] flex items-start gap-2">
+                  <span className="text-[#4a9eff] mt-1">•</span>
+                  <span>{ref}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Source info */}
+        {(draft.source_title || draft.source_url) && !isEditing && (
+          <div className="pt-4 border-t border-[#1d3461] bg-[#0a192f]/50 -mx-6 -mb-6 md:-mx-8 md:-mb-8 px-6 md:px-8 pb-6 md:pb-8 rounded-b-lg">
+            <div className="text-xs text-[#8892b0] mb-2">المصدر:</div>
+            {draft.source_title && (
+              <div className="text-sm text-[#e6f1ff] mb-1">{draft.source_title}</div>
+            )}
+            {draft.source_url && (
+              <a
+                href={draft.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-[#4a9eff] hover:underline break-all"
+              >
+                {draft.source_url}
+              </a>
+            )}
+            {draft.source_summary && (
+              <p className="text-xs text-[#8892b0] mt-2 leading-relaxed">{draft.source_summary}</p>
+            )}
+          </div>
+        )}
+
+        {/* Rejection reason banner */}
+        {draft.status === "rejected" && draft.rejection_reason && !isEditing && (
+          <div className="p-4 bg-[#3a0a0a] border border-[#ef4444]/30 rounded-md">
+            <div className="text-xs text-[#ef4444] mb-1 font-medium">سبب الرفض:</div>
+            <p className="text-sm text-[#e6f1ff]">{draft.rejection_reason}</p>
+          </div>
+        )}
+      </article>
+
+      {/* Action bar */}
+      <div className="bg-[#0f1f3d] border border-[#1d3461] rounded-lg p-4 md:p-5">
+        {isRejecting ? (
+          <div className="space-y-3">
+            <label className="block text-sm text-[#e6f1ff] font-medium">سبب الرفض</label>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+              maxLength={500}
+              placeholder="اشرح سبب رفض المسوّدة (مطلوب)..."
+              disabled={isPending}
+              className="w-full px-3 py-2 bg-[#0a192f] border border-[#1d3461] focus:border-[#ef4444] rounded-md text-[#e6f1ff] text-sm outline-none transition-colors resize-none"
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#8892b0]">{rejectReason.length} / 500</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setIsRejecting(false);
+                    setRejectReason("");
+                    setError(null);
+                  }}
+                  disabled={isPending}
+                  className="px-4 py-2 bg-[#152a4a] hover:bg-[#1d3461] text-[#e6f1ff] text-sm rounded-md transition-colors"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleReject}
+                  disabled={isPending || !rejectReason.trim()}
+                  className="px-4 py-2 bg-[#ef4444] hover:bg-[#dc2626] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors"
+                >
+                  {isPending ? "جاري الرفض..." : "تأكيد الرفض"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : isEditing ? (
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              onClick={handleCancelEdit}
+              disabled={isPending}
+              className="px-4 py-2 bg-[#152a4a] hover:bg-[#1d3461] text-[#e6f1ff] text-sm rounded-md transition-colors"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isPending}
+              className="px-4 py-2 bg-[#4a9eff] hover:bg-[#3a8eef] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors"
+            >
+              {isPending ? "جاري الحفظ..." : "حفظ التعديلات"}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* Edit available always */}
+            <button
+              onClick={() => setIsEditing(true)}
+              disabled={isPending}
+              className="px-4 py-2 bg-[#152a4a] hover:bg-[#1d3461] text-[#e6f1ff] text-sm rounded-md transition-colors inline-flex items-center gap-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              تعديل
+            </button>
+
+            {/* Approve: pending or rejected */}
+            {(draft.status === "pending" || draft.status === "rejected") && (
+              <button
+                onClick={handleApprove}
+                disabled={isPending}
+                className="px-4 py-2 bg-[#4ade80] hover:bg-[#22c55e] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-[#0a192f] text-sm font-medium rounded-md transition-colors inline-flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {isPending ? "..." : "موافقة"}
+              </button>
+            )}
+
+            {/* Reject: pending or approved */}
+            {(draft.status === "pending" || draft.status === "approved") && (
+              <button
+                onClick={() => setIsRejecting(true)}
+                disabled={isPending}
+                className="px-4 py-2 bg-[#3a0a0a] hover:bg-[#5a1a1a] border border-[#ef4444]/30 text-[#ef4444] text-sm font-medium rounded-md transition-colors inline-flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                رفض
+              </button>
+            )}
+
+            {/* Publish: approved only */}
+            {draft.status === "approved" && (
+              <button
+                onClick={handlePublish}
+                disabled={isPending}
+                className="px-4 py-2 bg-[#4a9eff] hover:bg-[#3a8eef] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors inline-flex items-center gap-2"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+                {isPending ? "..." : "نشر"}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
