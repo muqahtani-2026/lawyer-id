@@ -7,6 +7,7 @@ import { signOut } from "@/lib/auth/actions";
 interface SidebarProps {
   displayName: string;
   email: string;
+  isAdmin: boolean;
 }
 
 interface NavLink {
@@ -36,7 +37,7 @@ const NAV_LINKS: NavLink[] = [
   },
 ];
 
-export function Sidebar({ displayName, email }: SidebarProps) {
+export function Sidebar({ displayName, email, isAdmin }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -101,6 +102,40 @@ export function Sidebar({ displayName, email }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* Admin-only link (yellow accent #fbbf24) */}
+        {isAdmin && (
+          <>
+            <div className="px-4 pt-5 pb-2">
+              <div className="text-[9px] text-[#8892b0] tracking-[1.5px] font-mono border-t border-[#1d3461] pt-3">
+                ADMIN ONLY
+              </div>
+            </div>
+            <Link
+              href="/admin"
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all border ${
+                pathname.startsWith("/admin")
+                  ? "bg-[#fbbf24]/10 text-[#fbbf24] border-[#fbbf24]/30 font-medium"
+                  : "text-[#fbbf24]/70 hover:bg-[#fbbf24]/5 hover:text-[#fbbf24] border-transparent"
+              }`}
+            >
+              <svg
+                className="w-5 h-5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+              <span className="text-sm">لوحة الإدارة</span>
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Sign Out */}

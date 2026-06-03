@@ -19,20 +19,25 @@ export default async function LawyerLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email")
+    .select("full_name, email, is_admin")
     .eq("id", user.id)
     .maybeSingle();
 
   const displayName =
     profile?.full_name ?? user.email?.split("@")[0] ?? "محامي";
   const email = user.email ?? "";
+  const isAdmin = profile?.is_admin ?? false;
 
   return (
     <div
       className="min-h-screen bg-[#0a192f] text-[#e6f1ff] flex"
       dir="rtl"
     >
-      <Sidebar displayName={displayName} email={email} />
+      <Sidebar
+        displayName={displayName}
+        email={email}
+        isAdmin={isAdmin}
+      />
       <main className="flex-1 overflow-x-hidden">{children}</main>
     </div>
   );
