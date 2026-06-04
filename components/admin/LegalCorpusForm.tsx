@@ -83,8 +83,8 @@ export function LegalCorpusForm({ initial, options, mode }: Props) {
         return;
       }
 
-      if (mode === "create" && result.data?.id) {
-        router.push(`/admin/legal-corpus/${result.data.id}`);
+      if (mode === "create" && (result.data as { id?: string })?.id) {
+        router.push(`/admin/legal-corpus/${(result.data as { id: string }).id}`);
       } else {
         router.refresh();
       }

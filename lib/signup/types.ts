@@ -77,3 +77,4 @@ export const INITIAL_FORM_DATA: SignupFormData = {
   email_enabled: true,
   preferred_send_hour: 8,
 };
+export type StepErrors = Partial<Record<keyof SignupFormData, string>>;

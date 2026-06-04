@@ -27,7 +27,7 @@ function DarkTooltip({
   active,
   payload,
   label,
-}: TooltipProps<number, string>) {
+}: any) {
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div
@@ -52,7 +52,7 @@ function DarkTooltip({
       >
         {label}
       </div>
-      {payload.map((entry, idx) => (
+      {payload.map((entry: any, idx: number) => (
         <div
           key={idx}
           style={{

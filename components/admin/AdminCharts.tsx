@@ -140,9 +140,9 @@ export function TopLawyersDonut({ data }: { data: TopLawyer[] }) {
               </Pie>
               <Tooltip
                 contentStyle={TOOLTIP_STYLE}
-                formatter={(value: number, name: string) => [
-                  `${value} مسوّدة`,
-                  name,
+                formatter={(value, name) => [
+                  `${Number(value)} مسوّدة`,
+                  String(name),
                 ]}
               />
               <Legend

@@ -71,7 +71,7 @@ export function DraftsLineChart({ data }: { data: DraftsByDay[] }) {
           contentStyle={TOOLTIP_STYLE}
           labelStyle={{ color: "#8892b0", marginBottom: 4 }}
           cursor={{ stroke: "#1d3461", strokeWidth: 1 }}
-          formatter={(value: number) => [value, "مسوّدات"]}
+          formatter={(value) => [Number(value), "مسوّدات"]}
         />
         <Line
           type="monotone"
@@ -135,7 +135,7 @@ export function DraftsDonutChart({ data }: { data: DraftsByStatus[] }) {
           </Pie>
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
-            formatter={(value: number, name: string) => [value, name]}
+            formatter={(value, name) => [Number(value), String(name)]}
           />
           <Legend
             verticalAlign="bottom"
