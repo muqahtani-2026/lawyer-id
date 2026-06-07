@@ -336,10 +336,6 @@ export default function SignupPage() {
               </button>
             )}
           </div>
-
-          <p className="text-center text-xs font-mono text-text-secondary opacity-60">
-            DEV: state preserved in memory only. Refresh = reset.
-          </p>
         </div>
       </main>
     </div>
