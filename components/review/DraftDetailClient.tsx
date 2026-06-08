@@ -11,6 +11,7 @@ import {
   publishDraft,
 } from "@/lib/actions/drafts";
 import type { DraftFull } from "@/lib/queries/review";
+import { RatingWidget } from "@/components/review/RatingWidget";
 
 // ============================================================
 // Helpers
@@ -448,6 +449,9 @@ export function DraftDetailClient({ draft }: { draft: DraftFull }) {
           </div>
         )}
       </div>
+
+      {/* Rating / Feedback */}
+      <RatingWidget draftId={draft.id} />
     </div>
   );
 }
