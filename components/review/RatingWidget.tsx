@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { submitFeedback } from "@/lib/actions/feedback";
+import { submitFeedback, getMyFeedbackForDraft } from "@/lib/actions/feedback";
 
 interface RatingWidgetProps {
   draftId: string;
@@ -29,8 +29,34 @@ export function RatingWidget({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const alreadyRated = initialRating != null;
+  const [alreadyRated, setAlreadyRated] = useState<boolean>(initialRating != null);
+  // إن لم يمرّر الخادم تقييمًا مسبقًا، نجلبه ذاتيًّا عند المونت
+  const [loading, setLoading] = useState<boolean>(initialRating == null);
+
   const activeStars = hover || rating;
+
+  // pre-fill: جلب التقييم السابق (إن وُجد) لهذه المسوّدة لهذا المستخدم
+  useEffect(() => {
+    if (initialRating != null) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const existing = await getMyFeedbackForDraft(draftId);
+      if (cancelled) return;
+      if (existing) {
+        setRating(existing.rating ?? 0);
+        setComment(existing.comment ?? "");
+        setWouldPublish(existing.would_publish ?? null);
+        setAlreadyRated(true);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [draftId, initialRating]);
 
   const handleSubmit = () => {
     setError(null);
@@ -41,6 +67,7 @@ export function RatingWidget({
     startTransition(async () => {
       const result = await submitFeedback(draftId, rating, comment, wouldPublish);
       if (result.success) {
+        setAlreadyRated(true);
         setSuccess(alreadyRated ? "تم تحديث تقييمك." : "شكرًا — تم حفظ تقييمك.");
         setError(null);
         setTimeout(() => setSuccess(null), 3000);
@@ -51,6 +78,8 @@ export function RatingWidget({
       }
     });
   };
+
+  const disabled = isPending || loading;
 
   return (
     <div className="bg-[#0f1f3d] border border-[#1d3461] rounded-lg p-4 md:p-6 space-y-5">
@@ -88,7 +117,7 @@ export function RatingWidget({
               onClick={() => setRating(star)}
               onMouseEnter={() => setHover(star)}
               onMouseLeave={() => setHover(0)}
-              disabled={isPending}
+              disabled={disabled}
               aria-label={`${star} من 5`}
               className="p-0.5 transition-transform hover:scale-110 disabled:cursor-not-allowed"
             >
@@ -121,7 +150,7 @@ export function RatingWidget({
           <button
             type="button"
             onClick={() => setWouldPublish(wouldPublish === true ? null : true)}
-            disabled={isPending}
+            disabled={disabled}
             className={cn(
               "px-3 py-1.5 text-sm rounded-md border transition-colors",
               wouldPublish === true
@@ -134,7 +163,7 @@ export function RatingWidget({
           <button
             type="button"
             onClick={() => setWouldPublish(wouldPublish === false ? null : false)}
-            disabled={isPending}
+            disabled={disabled}
             className={cn(
               "px-3 py-1.5 text-sm rounded-md border transition-colors",
               wouldPublish === false
@@ -156,7 +185,7 @@ export function RatingWidget({
           rows={3}
           maxLength={1000}
           placeholder="ما الذي أعجبك أو ينقص هذه المسوّدة؟"
-          disabled={isPending}
+          disabled={disabled}
           className="w-full px-3 py-2 bg-[#0a192f] border border-[#1d3461] focus:border-[#4a9eff] rounded-md text-[#e6f1ff] text-sm outline-none transition-colors resize-none leading-relaxed"
         />
       </div>
@@ -165,10 +194,16 @@ export function RatingWidget({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isPending || rating < 1}
+          disabled={disabled || rating < 1}
           className="px-4 py-2 bg-[#4a9eff] hover:bg-[#3a8eef] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors"
         >
-          {isPending ? "جاري الحفظ..." : alreadyRated ? "تحديث التقييم" : "إرسال التقييم"}
+          {isPending
+            ? "جاري الحفظ..."
+            : loading
+              ? "جاري التحميل..."
+              : alreadyRated
+                ? "تحديث التقييم"
+                : "إرسال التقييم"}
         </button>
       </div>
     </div>

@@ -9,6 +9,12 @@ export interface ActionResult {
   error?: string;
 }
 
+export interface DraftFeedback {
+  rating: number;
+  comment: string | null;
+  would_publish: boolean | null;
+}
+
 async function getAuthenticatedUserId(): Promise<string> {
   const supabase = await createClient();
   const {
@@ -76,5 +82,37 @@ export async function submitFeedback(
     return { success: true };
   } catch (e) {
     return { success: false, error: formatError(e) };
+  }
+}
+
+/**
+ * Read the current user's existing feedback for a draft (for pre-filling the rating widget).
+ * Returns null if no feedback exists yet, or on any error (widget falls back to empty state).
+ * RLS ensures the user can only read their own feedback row.
+ */
+export async function getMyFeedbackForDraft(
+  draftId: string
+): Promise<DraftFeedback | null> {
+  try {
+    const userId = await getAuthenticatedUserId();
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("feedback")
+      .select("rating, comment, would_publish")
+      .eq("draft_id", draftId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    return {
+      rating: data.rating,
+      comment: data.comment ?? null,
+      would_publish: data.would_publish ?? null,
+    };
+  } catch {
+    return null;
   }
 }
