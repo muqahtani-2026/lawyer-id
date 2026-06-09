@@ -36,7 +36,7 @@ export async function extractText(
 
   if (isPdf) {
     // استيراد من المسار الداخليّ لتفادي قراءة ملفّ الاختبار في بعض إصدارات pdf-parse
-    const pdfParse = (await import("pdf-parse")).default;
+    const pdfParse = ((await import("pdf-parse")) as any).default;
     const data = await pdfParse(buffer);
     const text = normalize(data.text || "");
     if (!text) throw new Error("تعذّر استخلاص نصّ من ملفّ PDF (قد يكون صورة ممسوحة).");
@@ -44,7 +44,7 @@ export async function extractText(
   }
 
   if (isDocx) {
-    const { value } = await mammoth.extractRawText({ buffer });
+    const { value } = await (mammoth as any).extractRawText({ buffer });
     const text = normalize(value || "");
     if (!text) throw new Error("تعذّر استخلاص نصّ من ملفّ DOCX.");
     return { text, fileType: "docx" };
