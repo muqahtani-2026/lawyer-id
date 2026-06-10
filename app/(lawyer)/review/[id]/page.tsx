@@ -32,7 +32,7 @@ export default async function DraftDetailPage({ params }: PageProps) {
       .maybeSingle(),
     supabase
       .from("content_drafts")
-      .select("content_format, published_at")
+      .select("content_format, published_at, scheduled_for")
       .eq("id", id)
       .single(),
   ]);
@@ -41,6 +41,7 @@ export default async function DraftDetailPage({ params }: PageProps) {
   const xConnected = !!xCred;
   const isXFormat = meta?.content_format === "x_short";
   const xAlreadyPublished = !!meta?.published_at;
+  const scheduledFor = meta?.scheduled_for ?? null;
 
   return (
     <DraftDetailClient
@@ -49,6 +50,7 @@ export default async function DraftDetailPage({ params }: PageProps) {
       xConnected={xConnected}
       isXFormat={isXFormat}
       xAlreadyPublished={xAlreadyPublished}
+      scheduledFor={scheduledFor}
     />
   );
 }

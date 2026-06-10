@@ -11,6 +11,7 @@ import {
   publishDraft,
 } from "@/lib/actions/drafts";
 import { publishDraftToX } from "@/lib/actions/x-publish";
+import { scheduleDraft, unscheduleDraft } from "@/lib/actions/schedule";
 import type { DraftFull } from "@/lib/queries/review";
 import { RatingWidget } from "@/components/review/RatingWidget";
 
@@ -34,6 +35,24 @@ function formatAbsoluteDate(iso: string): string {
   }
 }
 
+function formatRiyadhTime(iso: string): string {
+  const date = new Date(iso);
+  try {
+    return new Intl.DateTimeFormat("ar", {
+      calendar: "gregory",
+      timeZone: "Asia/Riyadh",
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  } catch {
+    return date.toLocaleString();
+  }
+}
+
 function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
@@ -44,6 +63,13 @@ function formatRelativeTime(iso: string): string {
   if (hours < 24) return `قبل ${hours} ساعة`;
   const days = Math.floor(hours / 24);
   return `قبل ${days} يوم`;
+}
+
+/** قيمة افتراضيّة لحقل datetime-local: بعد ساعة من الآن (بتوقيت المتصفّح). */
+function defaultScheduleValue(): string {
+  const d = new Date(Date.now() + 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 const statusBadgeStyles: Record<string, string> = {
@@ -70,12 +96,14 @@ export function DraftDetailClient({
   xConnected = false,
   isXFormat = false,
   xAlreadyPublished = false,
+  scheduledFor = null,
 }: {
   draft: DraftFull;
   isPro?: boolean;
   xConnected?: boolean;
   isXFormat?: boolean;
   xAlreadyPublished?: boolean;
+  scheduledFor?: string | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -89,6 +117,10 @@ export function DraftDetailClient({
   // Reject dialog state
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+
+  // Schedule dialog state
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleTime, setScheduleTime] = useState(defaultScheduleValue());
 
   // Action feedback
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +167,7 @@ export function DraftDetailClient({
     });
   };
 
-  // نشر إلى X (Pro) — يستدعي publishDraftToX التي تُرجع { ok, error?, tweetId? }
+  // نشر فوريّ إلى X (Pro)
   const handlePublishX = () => {
     setError(null);
     startTransition(async () => {
@@ -147,6 +179,41 @@ export function DraftDetailClient({
         router.refresh();
       } else {
         setError(result.error ?? "تعذّر النشر على X.");
+        setSuccess(null);
+      }
+    });
+  };
+
+  // جدولة النشر على X (Pro)
+  const handleSchedule = () => {
+    setError(null);
+    startTransition(async () => {
+      const iso = new Date(scheduleTime).toISOString();
+      const result = await scheduleDraft(draft.id, iso);
+      if (result.ok) {
+        setIsScheduling(false);
+        setSuccess("تمّت الجدولة — ستُنشر في الوقت المحدّد 📅");
+        setError(null);
+        setTimeout(() => setSuccess(null), 4000);
+        router.refresh();
+      } else {
+        setError(result.error ?? "تعذّرت الجدولة.");
+        setSuccess(null);
+      }
+    });
+  };
+
+  const handleUnschedule = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await unscheduleDraft(draft.id);
+      if (result.ok) {
+        setSuccess("أُلغيت الجدولة.");
+        setError(null);
+        setTimeout(() => setSuccess(null), 3000);
+        router.refresh();
+      } else {
+        setError(result.error ?? "تعذّر إلغاء الجدولة.");
         setSuccess(null);
       }
     });
@@ -176,6 +243,10 @@ export function DraftDetailClient({
 
   const statusKey = draft.status in statusBadgeStyles ? draft.status : "pending";
   const displayTitle = draft.draft_title ?? draft.source_title ?? "بدون عنوان";
+
+  // هل تتوفّر شروط النشر على X؟ (مقبولة + x_short + Pro + غير منشورة على X)
+  const xEligible =
+    draft.status === "approved" && isXFormat && isPro && !xAlreadyPublished;
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
@@ -207,6 +278,29 @@ export function DraftDetailClient({
           )}
         >
           {error ?? success}
+        </div>
+      )}
+
+      {/* شارة الجدولة */}
+      {scheduledFor && !xAlreadyPublished && (
+        <div className="p-3 rounded-md border bg-[#152a4a] border-[#4a9eff]/30 text-sm text-[#e6f1ff] flex items-center justify-between gap-3 flex-wrap">
+          <span className="inline-flex items-center gap-2">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            مجدوَلة للنشر على X: <strong>{formatRiyadhTime(scheduledFor)}</strong>
+            <span className="text-xs text-[#8892b0]">(توقيت الرياض)</span>
+          </span>
+          <button
+            onClick={handleUnschedule}
+            disabled={isPending}
+            className="px-3 py-1.5 bg-[#0f1f3d] hover:bg-[#1d3461] border border-[#1d3461] text-[#8892b0] hover:text-[#e6f1ff] text-xs rounded-md transition-colors"
+          >
+            {isPending ? "..." : "إلغاء الجدولة"}
+          </button>
         </div>
       )}
 
@@ -401,6 +495,40 @@ export function DraftDetailClient({
               </div>
             </div>
           </div>
+        ) : isScheduling ? (
+          <div className="space-y-3">
+            <label className="block text-sm text-[#e6f1ff] font-medium">
+              وقت النشر على X
+              <span className="text-xs text-[#8892b0] font-normal mr-2">(بتوقيتك المحليّ)</span>
+            </label>
+            <input
+              type="datetime-local"
+              value={scheduleTime}
+              onChange={(e) => setScheduleTime(e.target.value)}
+              disabled={isPending}
+              className="w-full md:w-auto px-3 py-2 bg-[#0a192f] border border-[#1d3461] focus:border-[#4a9eff] rounded-md text-[#e6f1ff] text-sm outline-none transition-colors"
+              style={{ fontFamily: "'JetBrains Mono', monospace", colorScheme: "dark" }}
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  setIsScheduling(false);
+                  setError(null);
+                }}
+                disabled={isPending}
+                className="px-4 py-2 bg-[#152a4a] hover:bg-[#1d3461] text-[#e6f1ff] text-sm rounded-md transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleSchedule}
+                disabled={isPending || !scheduleTime}
+                className="px-4 py-2 bg-[#4a9eff] hover:bg-[#3a8eef] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors"
+              >
+                {isPending ? "جاري الجدولة..." : "تأكيد الجدولة"}
+              </button>
+            </div>
+          </div>
         ) : isEditing ? (
           <div className="flex items-center gap-2 justify-end">
             <button
@@ -477,19 +605,39 @@ export function DraftDetailClient({
               </button>
             )}
 
-            {/* Publish to X: approved + x_short + Pro + not already on X */}
-            {draft.status === "approved" && isXFormat && isPro && !xAlreadyPublished && (
-              xConnected ? (
-                <button
-                  onClick={handlePublishX}
-                  disabled={isPending}
-                  className="px-4 py-2 bg-[#1d9bf0] hover:bg-[#1a8cd8] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors inline-flex items-center gap-2"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                  {isPending ? "..." : "نشر إلى X"}
-                </button>
+            {/* X actions: approved + x_short + Pro + not already on X */}
+            {xEligible &&
+              (xConnected ? (
+                <>
+                  {/* جدولة النشر — يظهر فقط إن لم تكن مجدوَلة */}
+                  {!scheduledFor && (
+                    <button
+                      onClick={() => setIsScheduling(true)}
+                      disabled={isPending}
+                      className="px-4 py-2 bg-[#152a4a] hover:bg-[#1d3461] border border-[#4a9eff]/30 text-[#4a9eff] text-sm font-medium rounded-md transition-colors inline-flex items-center gap-2"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                      </svg>
+                      جدولة النشر
+                    </button>
+                  )}
+
+                  {/* نشر فوريّ إلى X */}
+                  <button
+                    onClick={handlePublishX}
+                    disabled={isPending}
+                    className="px-4 py-2 bg-[#1d9bf0] hover:bg-[#1a8cd8] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors inline-flex items-center gap-2"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                    {isPending ? "..." : "نشر إلى X"}
+                  </button>
+                </>
               ) : (
                 <Link
                   href="/profile"
@@ -497,8 +645,7 @@ export function DraftDetailClient({
                 >
                   اربط حساب X أوّلًا
                 </Link>
-              )
-            )}
+              ))}
 
             {/* Already published to X */}
             {draft.status === "approved" && isXFormat && xAlreadyPublished && (
