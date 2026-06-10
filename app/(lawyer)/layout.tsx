@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/Sidebar";
+import { MobileNav } from "@/components/MobileNav";
 
 export default async function LawyerLayout({
   children,
@@ -38,7 +39,8 @@ export default async function LawyerLayout({
         email={email}
         isAdmin={isAdmin}
       />
-      <main className="flex-1 overflow-x-hidden">{children}</main>
+      <main className="flex-1 overflow-x-hidden pb-20 md:pb-0">{children}</main>
+      <MobileNav isAdmin={isAdmin} />
     </div>
   );
 }
