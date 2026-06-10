@@ -86,8 +86,8 @@ export async function uploadCorpusItem(
   }
 
   // 2) رفع الملفّ إلى Storage داخل مجلّد المستخدم {user_id}/... (سياسة التخزين تتحقّق من ذلك)
-  const safeName = file.name.replace(/[^\p{L}\p{N}._-]+/gu, "_");
-  const path = `${user.id}/${crypto.randomUUID()}-${safeName}`;
+  const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
   const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, bytes, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
