@@ -42,14 +42,14 @@ export async function publishDraftToX(draftId: string): Promise<PublishResult> {
   // 2) جلب نصّ المسوّدة (RLS تضمن ملكيّة المستخدم لها)
   const { data: draft, error: draftError } = await supabase
     .from("content_drafts")
-    .select("body, title")
+    .select("draft_content, draft_title")
     .eq("id", draftId)
     .single();
   if (draftError || !draft) {
     return { ok: false, error: "تعذّر العثور على المسوّدة." };
   }
 
-  const text = (draft.body ?? "").trim();
+  const text = (draft.draft_content ?? "").trim();
   if (!text) return { ok: false, error: "المسوّدة فارغة." };
   if (text.length > TWEET_MAX) {
     return {
@@ -85,8 +85,11 @@ export async function publishDraftToX(draftId: string): Promise<PublishResult> {
 
   const json = (await res.json()) as { data: { id: string } };
 
-  // 5) (اختياريّ) وسم المسوّدة كمنشورة — عدّل أسماء الأعمدة حسب جدولك.
-  // ادمج هنا: await supabase.from("content_drafts").update({ status: "published", published_at: new Date().toISOString() }).eq("id", draftId);
+  // 5) وسم المسوّدة كمنشورة
+  await supabase
+    .from("content_drafts")
+    .update({ published_at: new Date().toISOString() })
+    .eq("id", draftId);
 
   return { ok: true, tweetId: json.data.id };
 }
