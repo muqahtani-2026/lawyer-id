@@ -9,6 +9,7 @@ import {
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { SamplesManager } from "@/components/profile/SamplesManager";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
+import ConnectXButton from "@/components/ConnectXButton";
 import { cn } from "@/lib/utils";
 
 interface PageProps {
@@ -71,6 +72,18 @@ export default async function ProfilePage({ searchParams }: PageProps) {
     getNotificationPreferences(user.id),
   ]);
 
+  // --- حالة ربط X (Pro) ---
+  const [{ data: tierRow }, { data: xCred }] = await Promise.all([
+    supabase.from("profiles").select("tier").eq("id", user.id).single(),
+    supabase
+      .from("lawyer_x_credentials")
+      .select("x_username")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
+  const isPro = tierRow?.tier === "pro";
+  const xUsername = xCred?.x_username ?? null;
+
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
       {/* Header */}
@@ -91,6 +104,27 @@ export default async function ProfilePage({ searchParams }: PageProps) {
           </p>
         )}
       </header>
+
+      {/* ربط النشر على X */}
+      <section className="bg-[#0f1f3d] border border-[#1d3461] rounded-lg p-4 md:p-5">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-sm font-semibold text-[#e6f1ff] inline-flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[#e6f1ff]">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              النشر التلقائيّ على X
+            </h2>
+            <p className="text-xs text-[#8892b0] mt-0.5">
+              اربط حساب X لتنشر مسوّداتك بضغطة من صفحة المراجعة.
+            </p>
+          </div>
+          <ConnectXButton isPro={isPro} connectedUsername={xUsername} />
+        </div>
+        {!isPro && (
+          <p className="text-xs text-[#fbbf24] mt-3">النشر التلقائيّ على X ميزة Pro.</p>
+        )}
+      </section>
 
       {/* Tabs */}
       <nav className="flex items-center gap-1 border-b border-[#1d3461] overflow-x-auto -mx-2 px-2 pb-px">
