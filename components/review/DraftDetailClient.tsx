@@ -10,6 +10,7 @@ import {
   updateDraft,
   publishDraft,
 } from "@/lib/actions/drafts";
+import { publishDraftToX } from "@/lib/actions/x-publish";
 import type { DraftFull } from "@/lib/queries/review";
 import { RatingWidget } from "@/components/review/RatingWidget";
 
@@ -63,7 +64,19 @@ const statusLabels: Record<string, string> = {
 // Main Component
 // ============================================================
 
-export function DraftDetailClient({ draft }: { draft: DraftFull }) {
+export function DraftDetailClient({
+  draft,
+  isPro = false,
+  xConnected = false,
+  isXFormat = false,
+  xAlreadyPublished = false,
+}: {
+  draft: DraftFull;
+  isPro?: boolean;
+  xConnected?: boolean;
+  isXFormat?: boolean;
+  xAlreadyPublished?: boolean;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -119,6 +132,23 @@ export function DraftDetailClient({ draft }: { draft: DraftFull }) {
     startTransition(async () => {
       const result = await publishDraft(draft.id);
       showFeedback(result, "تمّ نشر المسوّدة.");
+    });
+  };
+
+  // نشر إلى X (Pro) — يستدعي publishDraftToX التي تُرجع { ok, error?, tweetId? }
+  const handlePublishX = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await publishDraftToX(draft.id);
+      if (result.ok) {
+        setSuccess("تمّ النشر على X بنجاح ✅");
+        setError(null);
+        setTimeout(() => setSuccess(null), 4000);
+        router.refresh();
+      } else {
+        setError(result.error ?? "تعذّر النشر على X.");
+        setSuccess(null);
+      }
     });
   };
 
@@ -445,6 +475,39 @@ export function DraftDetailClient({ draft }: { draft: DraftFull }) {
                 </svg>
                 {isPending ? "..." : "نشر"}
               </button>
+            )}
+
+            {/* Publish to X: approved + x_short + Pro + not already on X */}
+            {draft.status === "approved" && isXFormat && isPro && !xAlreadyPublished && (
+              xConnected ? (
+                <button
+                  onClick={handlePublishX}
+                  disabled={isPending}
+                  className="px-4 py-2 bg-[#1d9bf0] hover:bg-[#1a8cd8] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors inline-flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  {isPending ? "..." : "نشر إلى X"}
+                </button>
+              ) : (
+                <Link
+                  href="/profile"
+                  className="px-4 py-2 bg-[#152a4a] hover:bg-[#1d3461] text-[#8892b0] text-sm rounded-md transition-colors inline-flex items-center gap-2"
+                >
+                  اربط حساب X أوّلًا
+                </Link>
+              )
+            )}
+
+            {/* Already published to X */}
+            {draft.status === "approved" && isXFormat && xAlreadyPublished && (
+              <span className="px-4 py-2 text-[#4a9eff] text-sm inline-flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+                نُشر على X ✓
+              </span>
             )}
           </div>
         )}
