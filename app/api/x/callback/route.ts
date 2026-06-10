@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { encrypt } from "@/lib/crypto";
 
 /**
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
   const me = (await meRes.json()) as { data: { id: string; username: string } };
 
   // التشفير + الحفظ عبر service_role (الأعمدة _enc محجوبة عن authenticated)
-  const admin = createAdminClient();
+  const admin = supabaseAdmin;
   const expiresAt = new Date(Date.now() + token.expires_in * 1000).toISOString();
 
   const { error: upsertError } = await admin
