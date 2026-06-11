@@ -1,11 +1,12 @@
 import Link from "next/link";
 import ConnectXButton from "@/components/ConnectXButton";
+import ConnectLinkedInButton from "@/components/ConnectLinkedInButton";
 
 /**
  * بطاقة Pro في صفحة المِلَفّ:
- * - للمحامي Free: تعريف بمزايا Pro + خطوات (1 اشترك ← 2 اربط X ← 3 LinkedIn قريبًا).
+ * - للمحامي Free: تعريف بمزايا Pro + خطوات (1 اشترك ← 2 اربط X ← 3 اربط LinkedIn).
  *   زرّ الاشتراك placeholder حاليًّا (الدفع = Phase 9، الترقية تُمنح يدويًّا للمختبِرين).
- * - للمحامي Pro: مؤشّر تقدّم الربط + زرّ ربط X الفعليّ.
+ * - للمحامي Pro: مؤشّر تقدّم الربط + زرّا ربط X وLinkedIn الفعليّان.
  *
  * Server component — يُستدعى من app/(lawyer)/profile/page.tsx.
  */
@@ -14,7 +15,7 @@ const PRO_FEATURES: { icon: string; text: string }[] = [
   { icon: "⚡", text: "نشر فوريّ على X بضغطة من صفحة المراجعة" },
   { icon: "📅", text: "جدولة النشر بالوقت الذي تختار — يُنشر وحده" },
   { icon: "📚", text: "مكتبة قانونيّة شخصيّة: ارفع ملفّاتك وتستقي المسوّدات منها" },
-  { icon: "🔗", text: "LinkedIn auto-publish (قريبًا)" },
+  { icon: "🔗", text: "نشر فوريّ على LinkedIn للمنشورات المتوسّطة" },
 ];
 
 function StepBadge({
@@ -46,9 +47,13 @@ function StepBadge({
 export function ProUpgradeCard({
   isPro,
   xUsername,
+  liConnected = false,
+  liExpiresAt = null,
 }: {
   isPro: boolean;
   xUsername: string | null;
+  liConnected?: boolean;
+  liExpiresAt?: string | null;
 }) {
   const xConnected = !!xUsername;
 
@@ -92,22 +97,30 @@ export function ProUpgradeCard({
             </span>
           </li>
 
-          {/* الخطوة 3: LinkedIn قريبًا */}
-          <li className="flex items-center gap-3 opacity-60">
-            <StepBadge n={3} />
-            <span className="text-sm text-[#8892b0]">
-              ربط LinkedIn
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#152a4a] border border-[#1d3461] text-[#8892b0] mr-2">
-                قريبًا
-              </span>
+          {/* الخطوة 3: ربط LinkedIn */}
+          <li className="flex items-center gap-3 flex-wrap">
+            <StepBadge n={3} done={liConnected} active={!liConnected && xConnected} />
+            <span className="text-sm text-[#e6f1ff] inline-flex items-center gap-2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.554V9h3.565v11.452z" />
+              </svg>
+              ربط حساب LinkedIn
+            </span>
+            <span className="mr-auto">
+              <ConnectLinkedInButton
+                isPro={isPro}
+                connected={liConnected}
+                expiresAt={liExpiresAt}
+              />
             </span>
           </li>
         </ol>
 
         {xConnected && (
           <p className="text-xs text-[#4ade80] pt-1 border-t border-[#1d3461]">
-            كلّ شيء جاهز — من صفحة المراجعة: «نشر إلى X» فورًا أو «جدولة النشر»، وتابع
-            المجدوَل في{" "}
+            من صفحة المراجعة: «نشر إلى X» أو «جدولة النشر» للتغريدات القصيرة
+            {liConnected && <>، و«نشر إلى LinkedIn» للمنشورات المتوسّطة</>}
+            ، وتابع المجدوَل في{" "}
             <Link href="/schedule" className="text-[#4a9eff] hover:underline">
               جدول النشر
             </Link>
@@ -160,12 +173,7 @@ export function ProUpgradeCard({
           </li>
           <li className="flex items-center gap-3 opacity-60">
             <StepBadge n={3} />
-            <span className="text-sm text-[#8892b0]">
-              اربط LinkedIn{" "}
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#152a4a] border border-[#1d3461]">
-                قريبًا
-              </span>
-            </span>
+            <span className="text-sm text-[#8892b0]">اربط حساب LinkedIn من هذه الصفحة</span>
           </li>
         </ol>
       </div>

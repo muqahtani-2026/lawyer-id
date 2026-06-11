@@ -72,17 +72,24 @@ export default async function ProfilePage({ searchParams }: PageProps) {
     getNotificationPreferences(user.id),
   ]);
 
-  // --- حالة Pro + ربط X ---
-  const [{ data: tierRow }, { data: xCred }] = await Promise.all([
+  // --- حالة Pro + ربط X + ربط LinkedIn ---
+  const [{ data: tierRow }, { data: xCred }, { data: liCred }] = await Promise.all([
     supabase.from("profiles").select("tier").eq("id", user.id).single(),
     supabase
       .from("lawyer_x_credentials")
       .select("x_username")
       .eq("user_id", user.id)
       .maybeSingle(),
+    supabase
+      .from("lawyer_linkedin_credentials")
+      .select("linkedin_user_id, token_expires_at")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
   const isPro = tierRow?.tier === "pro";
   const xUsername = xCred?.x_username ?? null;
+  const liConnected = !!liCred;
+  const liExpiresAt = liCred?.token_expires_at ?? null;
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
@@ -106,7 +113,12 @@ export default async function ProfilePage({ searchParams }: PageProps) {
       </header>
 
       {/* بطاقة Pro: ترقية (Free) أو خطوات الربط (Pro) */}
-      <ProUpgradeCard isPro={isPro} xUsername={xUsername} />
+      <ProUpgradeCard
+        isPro={isPro}
+        xUsername={xUsername}
+        liConnected={liConnected}
+        liExpiresAt={liExpiresAt}
+      />
 
       {/* Tabs */}
       <nav className="flex items-center gap-1 border-b border-[#1d3461] overflow-x-auto -mx-2 px-2 pb-px">

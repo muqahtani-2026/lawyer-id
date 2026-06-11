@@ -11,6 +11,7 @@ import {
   publishDraft,
 } from "@/lib/actions/drafts";
 import { publishDraftToX } from "@/lib/actions/x-publish";
+import { publishDraftToLinkedIn } from "@/lib/actions/linkedin-publish";
 import { scheduleDraft, unscheduleDraft } from "@/lib/actions/schedule";
 import type { DraftFull } from "@/lib/queries/review";
 import { RatingWidget } from "@/components/review/RatingWidget";
@@ -94,14 +95,18 @@ export function DraftDetailClient({
   draft,
   isPro = false,
   xConnected = false,
+  liConnected = false,
   isXFormat = false,
+  isLiFormat = false,
   xAlreadyPublished = false,
   scheduledFor = null,
 }: {
   draft: DraftFull;
   isPro?: boolean;
   xConnected?: boolean;
+  liConnected?: boolean;
   isXFormat?: boolean;
+  isLiFormat?: boolean;
   xAlreadyPublished?: boolean;
   scheduledFor?: string | null;
 }) {
@@ -184,6 +189,23 @@ export function DraftDetailClient({
     });
   };
 
+  // نشر فوريّ إلى LinkedIn (Pro)
+  const handlePublishLinkedIn = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await publishDraftToLinkedIn(draft.id);
+      if (result.ok) {
+        setSuccess("تمّ النشر على LinkedIn بنجاح ✅");
+        setError(null);
+        setTimeout(() => setSuccess(null), 4000);
+        router.refresh();
+      } else {
+        setError(result.error ?? "تعذّر النشر على LinkedIn.");
+        setSuccess(null);
+      }
+    });
+  };
+
   // جدولة النشر على X (Pro)
   const handleSchedule = () => {
     setError(null);
@@ -247,6 +269,10 @@ export function DraftDetailClient({
   // هل تتوفّر شروط النشر على X؟ (مقبولة + x_short + Pro + غير منشورة على X)
   const xEligible =
     draft.status === "approved" && isXFormat && isPro && !xAlreadyPublished;
+
+  // هل تتوفّر شروط النشر على LinkedIn؟ (مقبولة + linkedin_medium + Pro + غير منشورة)
+  const liEligible =
+    draft.status === "approved" && isLiFormat && isPro && !xAlreadyPublished;
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
@@ -647,6 +673,28 @@ export function DraftDetailClient({
                 </Link>
               ))}
 
+            {/* LinkedIn action: approved + linkedin_medium + Pro + not published */}
+            {liEligible &&
+              (liConnected ? (
+                <button
+                  onClick={handlePublishLinkedIn}
+                  disabled={isPending}
+                  className="px-4 py-2 bg-[#0a66c2] hover:bg-[#085aab] disabled:bg-[#1d3461] disabled:text-[#8892b0] text-white text-sm font-medium rounded-md transition-colors inline-flex items-center gap-2"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.554V9h3.565v11.452z" />
+                  </svg>
+                  {isPending ? "..." : "نشر إلى LinkedIn"}
+                </button>
+              ) : (
+                <Link
+                  href="/profile"
+                  className="px-4 py-2 bg-[#152a4a] hover:bg-[#1d3461] text-[#8892b0] text-sm rounded-md transition-colors inline-flex items-center gap-2"
+                >
+                  اربط حساب LinkedIn أوّلًا
+                </Link>
+              ))}
+
             {/* Already published to X */}
             {draft.status === "approved" && isXFormat && xAlreadyPublished && (
               <span className="px-4 py-2 text-[#4a9eff] text-sm inline-flex items-center gap-2">
@@ -654,6 +702,16 @@ export function DraftDetailClient({
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
                 نُشر على X ✓
+              </span>
+            )}
+
+            {/* Already published to LinkedIn */}
+            {draft.status === "approved" && isLiFormat && xAlreadyPublished && (
+              <span className="px-4 py-2 text-[#4a9eff] text-sm inline-flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.554V9h3.565v11.452z" />
+                </svg>
+                نُشر على LinkedIn ✓
               </span>
             )}
           </div>
