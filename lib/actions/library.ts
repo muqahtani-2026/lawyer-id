@@ -2,8 +2,6 @@
 
 // lib/actions/library.ts
 // أفعال الخادم لمكتبة المحامي الشخصيّة (Pro — Phase 8.4/8.5).
-// ⚠️ عدّل سطر استيراد عميل Supabase أدناه ليطابق الـ helper المستخدم في feedback.ts
-//    (نفس عميل الخادم المعتمد على جلسة المستخدم، لتُطبَّق RLS وسياسات Storage لكلّ محامٍ).
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { extractText } from "@/lib/extract";
@@ -195,4 +193,35 @@ export async function deleteCorpusItem(id: string): Promise<ActionResult<null>> 
   }
   revalidatePath("/library");
   return { ok: true, data: null };
+}
+
+/** رابط تنزيل مؤقّت (5 دقائق) للملفّ الأصليّ — Phase 8.5 */
+export async function getCorpusDownloadUrl(
+  id: string
+): Promise<ActionResult<{ url: string; file_name: string }>> {
+  const { supabase, user } = await getUser();
+  if (!user) return { ok: false, error: "غير مُصرّح." };
+
+  // RLS تضمن أنّ الصفّ ملك المستخدم
+  const { data: row, error: selErr } = await supabase
+    .from("user_legal_corpus")
+    .select("file_path, file_name")
+    .eq("id", id)
+    .single();
+  if (selErr || !row) return { ok: false, error: "تعذّر العثور على المستند." };
+  if (!row.file_path)
+    return { ok: false, error: "هذا المستند نصّيّ — لا ملفّ أصليّ له." };
+
+  const { data: signed, error: urlErr } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(row.file_path, 300, {
+      download: row.file_name ?? true,
+    });
+  if (urlErr || !signed?.signedUrl)
+    return { ok: false, error: "تعذّر إنشاء رابط التنزيل." };
+
+  return {
+    ok: true,
+    data: { url: signed.signedUrl, file_name: row.file_name ?? "document" },
+  };
 }
