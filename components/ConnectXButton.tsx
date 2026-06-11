@@ -4,8 +4,8 @@
  * زرّ "اربط X" — يوضع في صفحة المِلَفّ.
  * يظهر فقط للمحامي على طبقة Pro (مرِّر isPro من مكوّن الخادم).
  *
- * - غير مربوط:  زرّ "اربط حساب X" → يوجّه إلى /api/x/connect.
- * - مربوط:      يعرض @username + زرّ "إعادة الربط".
+ * - غير مربوط:  زرّ "اربط حساب X" → صفحة الإرشاد /connect/x (ثمّ منها /api/x/connect).
+ * - مربوط:      يعرض @username + زرّ "إعادة الربط" → /api/x/connect مباشرة.
  */
 
 type Props = {
@@ -16,7 +16,13 @@ type Props = {
 export default function ConnectXButton({ isPro, connectedUsername }: Props) {
   if (!isPro) return null;
 
-  const go = () => {
+  // الربط الأوّل: عبر صفحة الإرشاد الموجَّهة
+  const goGuide = () => {
+    window.location.href = "/connect/x";
+  };
+
+  // إعادة الربط: مباشرة إلى بدء OAuth (لا حاجة للإرشاد مجدّدًا)
+  const reconnect = () => {
     window.location.href = "/api/x/connect";
   };
 
@@ -34,7 +40,7 @@ export default function ConnectXButton({ isPro, connectedUsername }: Props) {
         </span>
         <button
           type="button"
-          onClick={go}
+          onClick={reconnect}
           className="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
           style={{
             border: "1px solid var(--border, #1d3461)",
@@ -51,7 +57,7 @@ export default function ConnectXButton({ isPro, connectedUsername }: Props) {
   return (
     <button
       type="button"
-      onClick={go}
+      onClick={goGuide}
       className="rounded-md px-4 py-2 text-sm font-semibold transition-colors"
       style={{
         background: "var(--accent-lawyer, #4a9eff)",
