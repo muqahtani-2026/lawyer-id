@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
-// Phase 4.2b-2: Simplified signup (no Magic Link)
+// Phase 4.2b-2: Simplified signup
+// Phase 7.x: after a successful signup, send the SAME magic-link login email
+// that the /sign-in page sends, so the new user can enter immediately.
 
 const COMMERCIAL_SPECIALTY_ID = "e93453f0-64cd-4e5a-bb1a-4ee2294b26bc";
 
@@ -178,11 +181,32 @@ export async function POST(req: Request) {
 
     if (npError) throw new Error(`notification_preferences: ${npError.message}`);
 
+    // Phase 7.x: send the login link email (same as /sign-in).
+    // Non-fatal: if it fails (e.g. SMTP not yet configured), the account is
+    // still created and the user can request a link from the sign-in page.
+    try {
+      const anon = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
+      );
+      const origin = process.env.NEXT_PUBLIC_BASE_URL ?? new URL(req.url).origin;
+      await anon.auth.signInWithOtp({
+        email: data.email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${origin}/auth/callback`,
+        },
+      });
+    } catch (mailErr) {
+      console.error("signup login email failed (non-fatal):", mailErr);
+    }
+
     return NextResponse.json({
       ok: true,
       user_id: createdUserId,
       email: data.email,
-      message: "تمّ التسجيل بنجاح. سيتمّ التواصل معك قريبًا.",
+      message:
+        "تمّ التسجيل بنجاح! أرسلنا رابط الدخول إلى بريدك — افتحه للدخول إلى حسابك. ويمكنك أيضًا الدخول مباشرةً من صفحة تسجيل الدخول بإدخال بريدك.",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "خطأ في الخادم";
