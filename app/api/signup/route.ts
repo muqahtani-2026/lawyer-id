@@ -182,31 +182,45 @@ export async function POST(req: Request) {
     if (npError) throw new Error(`notification_preferences: ${npError.message}`);
 
     // Phase 7.x: send the login link email (same as /sign-in).
-    // Non-fatal: if it fails (e.g. SMTP not yet configured), the account is
-    // still created and the user can request a link from the sign-in page.
+    // Non-fatal: the account is created regardless. IMPORTANT: the Supabase
+    // client returns send errors as a *value* ({ error }), it does NOT throw —
+    // so we must read that value explicitly, otherwise failures are invisible.
+    let emailSent = false;
+    let emailWarning: string | null = null;
     try {
       const anon = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
       );
       const origin = process.env.NEXT_PUBLIC_BASE_URL ?? new URL(req.url).origin;
-      await anon.auth.signInWithOtp({
+      const { error: otpError } = await anon.auth.signInWithOtp({
         email: data.email,
         options: {
           shouldCreateUser: false,
           emailRedirectTo: `${origin}/auth/callback`,
         },
       });
+      if (otpError) {
+        emailWarning = otpError.message;
+        console.error("signup login email error (non-fatal):", otpError.message);
+      } else {
+        emailSent = true;
+      }
     } catch (mailErr) {
-      console.error("signup login email failed (non-fatal):", mailErr);
+      emailWarning =
+        mailErr instanceof Error ? mailErr.message : "unknown mail error";
+      console.error("signup login email threw (non-fatal):", mailErr);
     }
 
     return NextResponse.json({
       ok: true,
       user_id: createdUserId,
       email: data.email,
-      message:
-        "تمّ التسجيل بنجاح! أرسلنا رابط الدخول إلى بريدك — افتحه للدخول إلى حسابك. ويمكنك أيضًا الدخول مباشرةً من صفحة تسجيل الدخول بإدخال بريدك.",
+      email_sent: emailSent,
+      email_warning: emailWarning,
+      message: emailSent
+        ? "تمّ التسجيل بنجاح! أرسلنا رابط الدخول إلى بريدك — افتحه للدخول إلى حسابك. ويمكنك أيضًا الدخول مباشرةً من صفحة تسجيل الدخول بإدخال بريدك."
+        : "تمّ التسجيل بنجاح، لكن تعذّر إرسال رابط الدخول تلقائيًّا. يمكنك الدخول من صفحة تسجيل الدخول بإدخال بريدك.",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "خطأ في الخادم";
