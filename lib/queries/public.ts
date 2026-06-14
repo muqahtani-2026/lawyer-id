@@ -195,3 +195,14 @@ export async function getFieldBySlug(slug: string): Promise<PublicField | null> 
   if (error || !data) return null;
   return data as PublicField;
 }
+
+export async function getArticlesByProfessional(professionalId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("articles")
+    .select("id, slug, title, excerpt, published_at")
+    .eq("professional_id", professionalId)
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+  return data ?? [];
+}
