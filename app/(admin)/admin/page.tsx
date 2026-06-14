@@ -12,6 +12,7 @@ import {
   TopLawyersDonut,
 } from "@/components/admin/AdminCharts";
 import { ActivityFeed } from "@/components/admin/ActivityFeed";
+import { LamOverviewStrip } from "@/components/admin/LamOverviewStrip";
 
 export default async function AdminOverviewPage() {
   const [
@@ -52,6 +53,8 @@ export default async function AdminOverviewPage() {
           إحصاءات شاملة عن جميع المحامين والمسوّدات على Lawyer ID.
         </p>
       </header>
+
+      <LamOverviewStrip />
 
       {/* 6 KPI Cards */}
       <section
