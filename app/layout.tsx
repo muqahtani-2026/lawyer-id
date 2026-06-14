@@ -25,8 +25,13 @@ const fontMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lawyer ID",
-  description: "Saudi legal content platform for lawyers.",
+  title: {
+    default: "لام | LAM — منصّة الحضور المهنيّ",
+    template: "%s | لام",
+  },
+  description:
+    "لام منصّة حضورٍ مهنيّ سعوديّة: اجعل خبرتك مرئيّة، قابلةً للاكتشاف، وموثوقة. للمحامين والمستشارين والخبراء والأكاديميّين والمختصّين.",
+  metadataBase: new URL("https://lawyer-id-tgi1.vercel.app"),
 };
 
 export default function RootLayout({
