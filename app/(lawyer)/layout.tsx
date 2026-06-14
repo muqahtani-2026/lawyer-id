@@ -25,7 +25,7 @@ export default async function LawyerLayout({
     .maybeSingle();
 
   const displayName =
-    profile?.full_name ?? user.email?.split("@")[0] ?? "محامي";
+    profile?.full_name ?? user.email?.split("@")[0] ?? "مهنيّ";
   const email = user.email ?? "";
   const isAdmin = profile?.is_admin ?? false;
 
