@@ -123,3 +123,46 @@ export async function getPublishableDrafts() {
 
   return (drafts ?? []).filter((d) => !publishedDraftIds.has(d.id));
 }
+
+export interface DailyActivityPoint {
+  date: string;
+  label: string;
+  profile_views: number;
+  article_views: number;
+  contact_clicks: number;
+}
+
+/** نشاط آخر N يومًا (مشاهدات الملف/المقالات + نقرات التواصل) من analytics_events. */
+export async function getMyDailyActivity(days = 30): Promise<DailyActivityPoint[]> {
+  const { supabase, userId } = await uid();
+  if (!userId) return [];
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { data } = await supabase
+    .from("analytics_events")
+    .select("created_at, entity_type, event")
+    .eq("professional_id", userId)
+    .gte("created_at", since)
+    .limit(5000);
+
+  const buckets = new Map<string, DailyActivityPoint>();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    buckets.set(key, {
+      date: key,
+      label: d.toLocaleDateString("ar-SA", { month: "short", day: "numeric" }),
+      profile_views: 0,
+      article_views: 0,
+      contact_clicks: 0,
+    });
+  }
+  (data ?? []).forEach((e) => {
+    const key = String(e.created_at).slice(0, 10);
+    const b = buckets.get(key);
+    if (!b) return;
+    if (e.event === "contact_click") b.contact_clicks++;
+    else if (e.entity_type === "profile" && e.event === "view") b.profile_views++;
+    else if (e.entity_type === "article" && e.event === "view") b.article_views++;
+  });
+  return Array.from(buckets.values());
+}

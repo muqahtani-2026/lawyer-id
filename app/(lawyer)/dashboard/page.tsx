@@ -19,6 +19,7 @@ import {
   CalendarIcon,
 } from "@/components/dashboard/widgets";
 import { DraftsLineChart, DraftsDonutChart } from "@/components/dashboard/charts";
+import { LamPresenceStrip } from "@/components/dashboard/LamPresenceStrip";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -48,7 +49,7 @@ export default async function DashboardPage() {
       getDraftsByStatus(user.id),
     ]);
 
-  const displayName = profile?.full_name ?? "محامي";
+  const displayName = profile?.full_name ?? "مهنيّ";
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -64,6 +65,8 @@ export default async function DashboardPage() {
           هذه لوحة التحكّم. من هنا تتابع مسوّداتك، حالة وكيل المحتوى، واكتمال مِلَفّك.
         </p>
       </header>
+
+      <LamPresenceStrip />
 
       {/* KPI Row */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">

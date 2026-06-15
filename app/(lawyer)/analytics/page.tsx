@@ -1,4 +1,5 @@
-import { getMyStats } from "@/lib/queries/me";
+import { getMyStats, getMyDailyActivity } from "@/lib/queries/me";
+import { AnalyticsChart } from "@/components/dashboard/AnalyticsChart";
 
 export const metadata = { title: "الإحصاءات" };
 
@@ -14,7 +15,7 @@ const cards: { key: string; label: string; accent: string }[] = [
 ];
 
 export default async function AnalyticsPage() {
-  const stats = await getMyStats();
+  const [stats, activity] = await Promise.all([getMyStats(), getMyDailyActivity(30)]);
 
   return (
     <div className="p-6 md:p-8">
@@ -28,6 +29,10 @@ export default async function AnalyticsPage() {
             <div className="mt-1 text-sm text-muted">{c.label}</div>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <AnalyticsChart data={activity} />
       </div>
 
       <p className="mt-6 text-xs text-muted">
