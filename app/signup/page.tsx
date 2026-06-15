@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/brand-mark";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { StepBasicInfo } from "@/components/signup/step-basic-info";
+import { StepRoleCredential } from "@/components/signup/step-role-credential";
 import { StepSpecialty } from "@/components/signup/step-specialty";
 import { StepWritingStyle } from "@/components/signup/step-writing-style";
 import { StepWritingSamples } from "@/components/signup/step-writing-samples";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 const STEP_LABELS = [
   "الأساسيّات",
+  "التحقّق المهنيّ",
   "التخصّص",
   "أسلوب الكتابة",
   "العيّنات",
@@ -48,6 +50,16 @@ function validateStep1(data: SignupFormData): StepErrors {
     errors.blog_url = "الرابط يجب أن يبدأ بـ http أو https.";
   }
 
+  return errors;
+}
+
+function validateRoleCredential(data: SignupFormData): StepErrors {
+  const errors: StepErrors = {};
+  if (!data.professional_kind) {
+    errors.professional_kind = "اختر نوع التسجيل.";
+  } else if (!data.credential_file_base64) {
+    errors.credential_file_base64 = "إرفاق الوثيقة مطلوب للمراجعة والاعتماد.";
+  }
   return errors;
 }
 
@@ -107,10 +119,11 @@ function validateStep5(data: SignupFormData): StepErrors {
 
 const VALIDATORS: Record<number, (d: SignupFormData) => StepErrors> = {
   1: validateStep1,
-  2: validateStep2,
-  3: validateStep3,
-  4: validateStep4,
-  5: validateStep5,
+  2: validateRoleCredential,
+  3: validateStep2,
+  4: validateStep3,
+  5: validateStep4,
+  6: validateStep5,
 };
 
 export default function SignupPage() {
@@ -180,6 +193,12 @@ export default function SignupPage() {
     const payload = {
       full_name: formData.full_name,
       email: formData.email,
+      professional_kind: formData.professional_kind,
+      specialty_slug: formData.specialty_slug,
+      credential_number: formData.credential_number,
+      credential_file_base64: formData.credential_file_base64,
+      credential_file_name: formData.credential_file_name,
+      credential_file_type: formData.credential_file_type,
       target_audience: formData.target_audience,
       writing_style: formData.tone,
       preferred_length: formData.preferred_length,
@@ -226,12 +245,14 @@ export default function SignupPage() {
       case 1:
         return <StepBasicInfo data={formData} onChange={updateForm} errors={errors} />;
       case 2:
-        return <StepSpecialty data={formData} onChange={updateForm} errors={errors} />;
+        return <StepRoleCredential data={formData} onChange={updateForm} errors={errors} />;
       case 3:
-        return <StepWritingStyle data={formData} onChange={updateForm} errors={errors} />;
+        return <StepSpecialty data={formData} onChange={updateForm} errors={errors} />;
       case 4:
-        return <StepWritingSamples data={formData} onChange={updateForm} errors={errors} />;
+        return <StepWritingStyle data={formData} onChange={updateForm} errors={errors} />;
       case 5:
+        return <StepWritingSamples data={formData} onChange={updateForm} errors={errors} />;
+      case 6:
         return <StepNotifications data={formData} onChange={updateForm} errors={errors} />;
       default:
         return null;
@@ -271,7 +292,7 @@ export default function SignupPage() {
               إنشاء حسابك
             </h1>
             <p className="text-text-secondary">
-              5 خطوات قصيرة، وستبدأ باستلام مسوّداتك بأسلوبك.
+              6 خطوات قصيرة. يُراجَع طلبك ويُعتمد قبل ظهور ملفك للعامّة.
             </p>
           </div>
 

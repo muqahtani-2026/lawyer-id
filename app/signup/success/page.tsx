@@ -51,7 +51,7 @@ function SuccessContent() {
           </div>
 
           <h1 className="text-3xl md:text-4xl font-display font-bold mb-4">
-            تمّ إنشاء حسابك بنجاح
+            تمّ استلام طلبك — بانتظار الاعتماد
           </h1>
 
           <p className="text-text-secondary text-lg mb-2">
@@ -70,11 +70,11 @@ function SuccessContent() {
 
           {/* Next Steps */}
           <div className="bg-bg-elevated rounded-lg p-6 mb-8 text-right">
-            <h2 className="font-display font-semibold mb-3">الخطوة التالية</h2>
+            <h2 className="font-display font-semibold mb-3">ماذا بعد؟</h2>
             <ul className="space-y-2 text-text-secondary text-sm leading-relaxed">
-              <li>• اضغط الزرّ أدناه للانتقال إلى صفحة تسجيل الدخول.</li>
-              <li>• سيُرسَل إلى بريدك رابط دخول آمن ينتهي خلال ساعة.</li>
-              <li>• اضغط الرابط من بريدك لتدخل مباشرة إلى لوحتك.</li>
+              <li>• يراجع فريقنا وثيقتك (الرخصة / التدريب / الوثيقة القانونيّة).</li>
+              <li>• بعد الاعتماد، يمكنك تفعيل ملفك العام ليظهر في الموقع.</li>
+              <li>• اضغط الزرّ أدناه ثمّ ادخل عبر رابط بريدك لمتابعة حالة طلبك.</li>
             </ul>
           </div>
 

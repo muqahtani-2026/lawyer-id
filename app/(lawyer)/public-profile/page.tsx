@@ -6,6 +6,7 @@ export const metadata = { title: "ملفي العام" };
 
 export default async function PublicProfilePage() {
   const profile = await getMyPublicProfile();
+  const approved = profile?.approval_status === "approved";
 
   return (
     <div className="p-6 md:p-8">
@@ -23,8 +24,16 @@ export default async function PublicProfilePage() {
         )}
       </div>
 
+      {profile && !approved && (
+        <div className={`mb-6 rounded-xl border p-4 text-sm ${profile.approval_status === "rejected" ? "border-danger/40 bg-danger/5 text-content" : "border-warning/40 bg-warning/5 text-content"}`}>
+          {profile.approval_status === "rejected"
+            ? "تعذّر اعتماد طلبك. يُرجى التواصل مع الإدارة أو إعادة رفع وثيقة صحيحة."
+            : "حسابك بانتظار مراجعة الوثيقة واعتمادها. لا يمكن تفعيل الظهور العام حتّى يُعتمد طلبك."}
+        </div>
+      )}
+
       {profile ? (
-        <PublicProfileForm initial={profile} />
+        <PublicProfileForm initial={profile} locked={!approved} />
       ) : (
         <p className="text-muted">تعذّر تحميل الملف.</p>
       )}

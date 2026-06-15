@@ -79,6 +79,7 @@ export interface MyPublicProfile {
   contact_email: string | null;
   contact_form_enabled: boolean | null;
   is_public: boolean | null;
+  approval_status: string | null;
   bio_long: string | null;
 }
 
@@ -89,7 +90,7 @@ export async function getMyPublicProfile(): Promise<MyPublicProfile | null> {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "slug, full_name, headline, city, contact_whatsapp, contact_phone, contact_email, contact_form_enabled, is_public"
+      "slug, full_name, headline, city, contact_whatsapp, contact_phone, contact_email, contact_form_enabled, is_public, approval_status"
     )
     .eq("id", userId)
     .maybeSingle();

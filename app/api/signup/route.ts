@@ -11,6 +11,12 @@ const COMMERCIAL_SPECIALTY_ID = "e93453f0-64cd-4e5a-bb1a-4ee2294b26bc";
 interface SignupPayload {
   full_name: string;
   email: string;
+  professional_kind: "lawyer" | "trainee" | "legal_consultant";
+  specialty_slug?: string;
+  credential_number?: string;
+  credential_file_base64: string;
+  credential_file_name?: string;
+  credential_file_type: string;
   target_audience: string;
   writing_style: string;
   preferred_length: string;
@@ -48,6 +54,17 @@ function validatePayload(body: unknown): ValidationResult {
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email as string)) {
     return { ok: false, error: "صيغة البريد الإلكتروني غير صحيحة" };
+  }
+
+  const validKinds = ["lawyer", "trainee", "legal_consultant"];
+  if (!validKinds.includes(b.professional_kind as string)) {
+    return { ok: false, error: "نوع التسجيل غير صحيح" };
+  }
+  if (typeof b.credential_file_base64 !== "string" || (b.credential_file_base64 as string).length < 10) {
+    return { ok: false, error: "إرفاق الوثيقة مطلوب" };
+  }
+  if (typeof b.credential_file_type !== "string") {
+    return { ok: false, error: "نوع الوثيقة غير صحيح" };
   }
 
   const validStyles = ["formal", "friendly", "educational", "analytical", "concise"];
@@ -147,13 +164,55 @@ export async function POST(req: Request) {
 
     if (lpError) throw new Error(`lawyer_profiles: ${lpError.message}`);
 
+    let specialtyId = COMMERCIAL_SPECIALTY_ID;
+    if (data.specialty_slug) {
+      const { data: spec } = await supabaseAdmin
+        .from("specialties")
+        .select("id")
+        .eq("slug", data.specialty_slug)
+        .maybeSingle();
+      if (spec?.id) specialtyId = spec.id as string;
+    }
+
     const { error: usError } = await supabaseAdmin.from("user_specialties").insert({
       user_id: createdUserId,
-      specialty_id: COMMERCIAL_SPECIALTY_ID,
+      specialty_id: specialtyId,
       is_primary: true,
     });
 
     if (usError) throw new Error(`user_specialties: ${usError.message}`);
+
+    // رفع وثيقة الترخيص/التدريب/القانونيّة إلى bucket خاصّ + ضبط الدور والحالة (pending افتراضيًّا)
+    const extMap: Record<string, string> = {
+      "application/pdf": "pdf",
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+    };
+    const ext = extMap[data.credential_file_type] ?? "bin";
+    const docPath = `${createdUserId}/credential.${ext}`;
+    try {
+      const buffer = Buffer.from(data.credential_file_base64, "base64");
+      const { error: upErr } = await supabaseAdmin.storage
+        .from("credentials")
+        .upload(docPath, buffer, { contentType: data.credential_file_type, upsert: true });
+      if (upErr) throw new Error(upErr.message);
+    } catch (storageErr) {
+      throw new Error(`credential upload: ${storageErr instanceof Error ? storageErr.message : "fail"}`);
+    }
+
+    const { error: pkErr } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        professional_kind: data.professional_kind,
+        credential_number: data.credential_number ?? null,
+        credential_doc_path: docPath,
+        credential_doc_type: data.credential_file_type,
+        approval_status: "pending",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", createdUserId);
+    if (pkErr) throw new Error(`profiles(kind): ${pkErr.message}`);
 
     const samples = data.writing_samples.map((s) => ({
       user_id: createdUserId,
@@ -219,8 +278,8 @@ export async function POST(req: Request) {
       email_sent: emailSent,
       email_warning: emailWarning,
       message: emailSent
-        ? "تمّ التسجيل بنجاح! أرسلنا رابط الدخول إلى بريدك — افتحه للدخول إلى حسابك. ويمكنك أيضًا الدخول مباشرةً من صفحة تسجيل الدخول بإدخال بريدك."
-        : "تمّ التسجيل بنجاح، لكن تعذّر إرسال رابط الدخول تلقائيًّا. يمكنك الدخول من صفحة تسجيل الدخول بإدخال بريدك.",
+        ? "تمّ استلام طلبك! حسابك الآن بانتظار مراجعة الوثيقة واعتمادها. أرسلنا رابط الدخول إلى بريدك لمتابعة حالة الطلب."
+        : "تمّ استلام طلبك! حسابك بانتظار مراجعة الوثيقة واعتمادها. يمكنك الدخول من صفحة تسجيل الدخول بإدخال بريدك لمتابعة الحالة.",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "خطأ في الخادم";

@@ -169,3 +169,39 @@ export async function adminSetProfessionalTier(userId: string, tier: "free" | "p
   revalidatePath("/admin/lawyers");
   return { ok: true };
 }
+
+/* --------------------------- اعتماد المهنيّين --------------------------- */
+export async function adminApproveProfessional(userId: string): Promise<Res> {
+  if (!(await requireAdmin())) return DENIED;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ approval_status: "approved", approval_note: null, reviewed_at: new Date().toISOString(), reviewed_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (error) return { ok: false, error: "تعذّر الاعتماد." };
+  revalidatePath("/admin/approvals");
+  revalidatePath("/admin/lawyers");
+  return { ok: true };
+}
+
+export async function adminRejectProfessional(userId: string, note: string): Promise<Res> {
+  if (!(await requireAdmin())) return DENIED;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ approval_status: "rejected", is_public: false, approval_note: note?.trim() || "غير مطابق", reviewed_at: new Date().toISOString(), reviewed_by: user?.id ?? null, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (error) return { ok: false, error: "تعذّر الرفض." };
+  revalidatePath("/admin/approvals");
+  return { ok: true };
+}
+
+/** يولّد رابطًا موقّعًا لوثيقة الاعتماد (يُستدعى من الواجهة عند الضغط على "عرض الوثيقة"). */
+export async function adminCredentialUrl(path: string): Promise<{ ok: boolean; url?: string; error?: string }> {
+  if (!(await requireAdmin())) return { ok: false, error: "غير مصرّح" };
+  const { data } = await supabaseAdmin.storage.from("credentials").createSignedUrl(path, 300);
+  if (!data?.signedUrl) return { ok: false, error: "تعذّر إنشاء الرابط." };
+  return { ok: true, url: data.signedUrl };
+}

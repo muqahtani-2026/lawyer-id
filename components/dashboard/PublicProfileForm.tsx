@@ -5,7 +5,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { savePublicProfile } from "@/lib/actions/me";
 import type { MyPublicProfile } from "@/lib/queries/me";
 
-export function PublicProfileForm({ initial }: { initial: MyPublicProfile }) {
+export function PublicProfileForm({ initial, locked = false }: { initial: MyPublicProfile; locked?: boolean }) {
   const [form, setForm] = useState({
     headline: initial.headline ?? "",
     city: initial.city ?? "",
@@ -40,9 +40,10 @@ export function PublicProfileForm({ initial }: { initial: MyPublicProfile }) {
           </div>
           <input
             type="checkbox"
-            checked={form.is_public}
+            checked={form.is_public && !locked}
+            disabled={locked}
             onChange={(e) => setForm({ ...form, is_public: e.target.checked })}
-            className="h-5 w-5 accent-[#4a9eff]"
+            className="h-5 w-5 accent-[#4a9eff] disabled:opacity-40"
           />
         </label>
         {initial.slug && (

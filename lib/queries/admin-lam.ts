@@ -124,3 +124,18 @@ export async function getTaxonomy() {
     .order("name_ar", { ascending: true });
   return data ?? [];
 }
+
+/* --------------------------- طابور اعتماد المهنيّين --------------------------- */
+export async function getPendingProfessionals() {
+  const { data } = await supabaseAdmin
+    .from("v_pending_professionals")
+    .select("*");
+  return data ?? [];
+}
+
+/** رابط موقّع لعرض وثيقة الاعتماد (صالح لمدّة قصيرة). */
+export async function getCredentialSignedUrl(path: string): Promise<string | null> {
+  if (!path) return null;
+  const { data } = await supabaseAdmin.storage.from("credentials").createSignedUrl(path, 300);
+  return data?.signedUrl ?? null;
+}

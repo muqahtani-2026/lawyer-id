@@ -28,7 +28,14 @@ export interface SignupFormData {
   blog_url: string;
   bio_short: string;
 
-  // Step 2 — Specialty (MVP: commercial only)
+  // Step 2 — Professional verification
+  professional_kind: "lawyer" | "trainee" | "legal_consultant" | "";
+  credential_number: string;
+  credential_file_base64: string;
+  credential_file_name: string;
+  credential_file_type: string;
+
+  // Step 3 — Specialty
   specialty_slug: string;
 
   // Step 3 — Writing Style
@@ -57,6 +64,12 @@ export const INITIAL_FORM_DATA: SignupFormData = {
   x_handle: "",
   blog_url: "",
   bio_short: "",
+
+  professional_kind: "",
+  credential_number: "",
+  credential_file_base64: "",
+  credential_file_name: "",
+  credential_file_type: "",
 
   // Step 2
   specialty_slug: "commercial",
