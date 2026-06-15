@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShareButton } from "@/components/public/ShareButton";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { TierBadge } from "@/components/ui/badge";
@@ -69,6 +70,8 @@ export default async function ArticlePage({
         <span className="mx-1">/</span>
         <Link href="/articles" className="hover:text-content">المقالات</Link>
       </nav>
+
+      <div className="mt-4 flex justify-end"><ShareButton title={article.title} /></div>
 
       <article className="mt-4">
         <header>

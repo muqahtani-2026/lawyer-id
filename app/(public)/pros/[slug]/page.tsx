@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ShareButton } from "@/components/public/ShareButton";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Badge, TierBadge } from "@/components/ui/badge";
@@ -87,6 +88,7 @@ export default async function ProfilePage({
                 )}
               </div>
             </div>
+            <ShareButton title={p.full_name ?? undefined} />
           </div>
 
           {p.bio_long && (
