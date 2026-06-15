@@ -16,8 +16,31 @@ export default async function HomePage() {
     getActiveFields(),
   ]);
 
+  const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lawyer-id-tgi1.vercel.app";
+  const siteLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "لام",
+    url: BASE,
+    inLanguage: "ar",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: { "@type": "EntryPoint", urlTemplate: BASE + "/search?q={query}" },
+      "query-input": "required name=query",
+    },
+  };
+  const orgLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "لام",
+    url: BASE,
+    description: "منصّة الحضور المهنيّ السعوديّة — اجعل خبرتك مرئيّة.",
+  };
+
   return (
     <div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgLd) }} />
       {/* Hero */}
       <section className="border-b border-line">
         <div className="mx-auto max-w-6xl px-4 py-20 text-center">
