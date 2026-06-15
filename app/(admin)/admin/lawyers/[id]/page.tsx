@@ -74,7 +74,7 @@ export default async function AdminLawyerDetailPage({
       {/* Profile + Notifications side-by-side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <div className="mb-8">
-          <AdminLawyerControls userId={detail.profile.id} isPublic={detail.profile.is_public} tier={detail.profile.tier} />
+          <AdminLawyerControls userId={detail.profile.id} isPublic={detail.profile.is_public} tier={detail.profile.tier} approvalStatus={detail.profile.approval_status} professionalKind={detail.profile.professional_kind} credentialDocPath={detail.profile.credential_doc_path} />
         </div>
 
         <ProfilePanel

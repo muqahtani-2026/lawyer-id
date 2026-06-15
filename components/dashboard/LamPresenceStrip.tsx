@@ -12,7 +12,9 @@ export async function LamPresenceStrip() {
     { key: "contact_clicks", label: "نقرات التواصل", href: "/analytics", accent: "text-success" },
   ];
 
-  const isPublic = profile?.is_public;
+  const status = profile?.approval_status ?? "approved";
+  const approved = status === "approved";
+  const isPublic = profile?.is_public && approved;
 
   return (
     <section aria-label="حضوري على لام" className="space-y-3">
@@ -22,14 +24,28 @@ export async function LamPresenceStrip() {
           <Link href={`/pros/${profile.slug}`} target="_blank" className="text-xs text-lawyer hover:underline">
             عرض ملفي العام ↗
           </Link>
-        ) : (
+        ) : approved ? (
           <Link href="/public-profile" className="text-xs text-premium hover:underline">
             فعّل ملفك العام ←
+          </Link>
+        ) : (
+          <Link href="/public-profile" className="text-xs text-warning hover:underline">
+            حالة الاعتماد ←
           </Link>
         )}
       </div>
 
-      {!isPublic && (
+      {!approved && status === "pending" && (
+        <div className="rounded-xl border border-warning/40 bg-warning/5 p-4 text-sm text-content">
+          حسابك بانتظار مراجعة وثيقتك واعتمادها. بعد الاعتماد ستتمكّن من تفعيل ملفك العام والظهور في البحث.
+        </div>
+      )}
+      {!approved && status === "rejected" && (
+        <div className="rounded-xl border border-danger/40 bg-danger/5 p-4 text-sm text-content">
+          تعذّر اعتماد طلبك. راجع «ملفي العام» للتفاصيل أو أعد رفع وثيقة صحيحة.
+        </div>
+      )}
+      {approved && !isPublic && (
         <div className="rounded-xl border border-premium/40 bg-premium/5 p-4 text-sm text-content">
           ملفك العام غير مُفعّل بعد — فعّله من «ملفي العام» لتظهر في البحث وتستقبل طلبات التواصل.
         </div>

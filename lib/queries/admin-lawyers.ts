@@ -25,6 +25,9 @@ export type AdminLawyerDetail = {
     is_admin: boolean;
     is_public: boolean;
     tier: string | null;
+    approval_status: string | null;
+    professional_kind: string | null;
+    credential_doc_path: string | null;
     created_at: string;
   };
   lawyer_profile: {
@@ -180,7 +183,7 @@ export async function getLawyerDetail(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, email, is_admin, is_public, tier, created_at")
+    .select("id, full_name, email, is_admin, is_public, tier, approval_status, professional_kind, credential_doc_path, created_at")
     .eq("id", userId)
     .maybeSingle();
 
@@ -265,6 +268,9 @@ export async function getLawyerDetail(
       is_admin: (profile.is_admin as boolean) ?? false,
       is_public: (profile.is_public as boolean) ?? false,
       tier: (profile.tier as string | null) ?? null,
+      approval_status: (profile.approval_status as string | null) ?? null,
+      professional_kind: (profile.professional_kind as string | null) ?? null,
+      credential_doc_path: (profile.credential_doc_path as string | null) ?? null,
       created_at: profile.created_at as string,
     },
     lawyer_profile: lawyerProfileRes.data

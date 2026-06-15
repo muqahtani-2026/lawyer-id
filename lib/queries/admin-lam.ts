@@ -15,6 +15,8 @@ export async function getLamOverview() {
     leadsTotal,
     leadsNew,
     activeSubs,
+    pendingApprovals,
+    ingestPending,
   ] = await Promise.all([
     a.from("profiles").select("*", head),
     a.from("profiles").select("*", head).eq("tier", "premium"),
@@ -26,6 +28,8 @@ export async function getLamOverview() {
     a.from("communication_requests").select("*", head),
     a.from("communication_requests").select("*", head).eq("status", "new"),
     a.from("subscriptions").select("*", head).eq("status", "active"),
+    a.from("profiles").select("*", head).eq("is_admin", false).eq("approval_status", "pending"),
+    a.from("regulation_ingest").select("*", head).eq("status", "pending"),
   ]);
   const n = (r: { count: number | null }) => r.count ?? 0;
   const professionalsN = n(professionals);
@@ -41,6 +45,8 @@ export async function getLamOverview() {
     leadsTotal: n(leadsTotal),
     leadsNew: n(leadsNew),
     activeSubs: n(activeSubs),
+    pendingApprovals: n(pendingApprovals),
+    ingestPending: n(ingestPending),
   };
 }
 
