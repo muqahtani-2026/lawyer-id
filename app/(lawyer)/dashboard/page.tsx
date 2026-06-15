@@ -20,6 +20,7 @@ import {
 } from "@/components/dashboard/widgets";
 import { DraftsLineChart, DraftsDonutChart } from "@/components/dashboard/charts";
 import { LamPresenceStrip } from "@/components/dashboard/LamPresenceStrip";
+import { FunnelStrip } from "@/components/dashboard/FunnelStrip";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -67,6 +68,8 @@ export default async function DashboardPage() {
       </header>
 
       <LamPresenceStrip />
+
+      <FunnelStrip />
 
       {/* KPI Row */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">

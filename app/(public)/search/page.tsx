@@ -26,9 +26,22 @@ export default async function SearchPage({
   const city = first(sp.city);
   const field = first(sp.field);
   const type = first(sp.type) === "articles" ? "articles" : "pros";
+  const lang = first(sp.lang);
+  const sort = first(sp.sort) || "relevance";
 
   const fields = await getActiveFields();
-  const pros = type === "pros" ? await searchProfessionals(q, city, field) : [];
+  let pros = type === "pros" ? await searchProfessionals(q, city, field) : [];
+  if (type === "pros" && lang) {
+    const want = lang === "en" ? ["en", "إنج", "انج", "english"] : ["ar", "عرب", "arabic"];
+    pros = pros.filter((p) => {
+      const joined = (p.languages ?? []).join(" ").toLowerCase();
+      return want.some((w) => joined.includes(w));
+    });
+  }
+  if (type === "pros") {
+    if (sort === "experience") pros = [...pros].sort((a, b) => (b.years_experience ?? 0) - (a.years_experience ?? 0));
+    else if (sort === "content") pros = [...pros].sort((a, b) => (b.article_count ?? 0) - (a.article_count ?? 0));
+  }
   const articles = type === "articles" ? await searchArticles(q, field) : [];
 
   return (
@@ -60,7 +73,25 @@ export default async function SearchPage({
           placeholder="المدينة"
           className="h-10 rounded-lg border border-line bg-base px-3 text-content placeholder:text-muted focus:border-lawyer focus:outline-none"
         />
-        <button type="submit" className={buttonClasses("primary", "md", "sm:col-span-4")}>
+        <select
+          name="lang"
+          defaultValue={lang}
+          className="h-10 rounded-lg border border-line bg-base px-3 text-content focus:border-lawyer focus:outline-none"
+        >
+          <option value="">كلّ اللغات</option>
+          <option value="ar">العربيّة</option>
+          <option value="en">الإنجليزيّة</option>
+        </select>
+        <select
+          name="sort"
+          defaultValue={sort}
+          className="h-10 rounded-lg border border-line bg-base px-3 text-content focus:border-lawyer focus:outline-none"
+        >
+          <option value="relevance">الأكثر صلة</option>
+          <option value="experience">الأكثر خبرة</option>
+          <option value="content">الأكثر محتوًى</option>
+        </select>
+        <button type="submit" className={buttonClasses("primary", "md", "sm:col-span-2")}>
           تطبيق البحث
         </button>
       </form>
@@ -104,6 +135,12 @@ export default async function SearchPage({
                       <Badge key={s.id} tone="neutral">{s.name}</Badge>
                     ))}
                     {p.city && <Badge tone="neutral">{p.city}</Badge>}
+                  </div>
+                  <div className="mt-3 flex gap-3 text-xs text-muted">
+                    {typeof p.years_experience === "number" && p.years_experience > 0 && (
+                      <span>{p.years_experience} سنوات خبرة</span>
+                    )}
+                    <span>{p.article_count} مقالات</span>
                   </div>
                 </Link>
               ))}
