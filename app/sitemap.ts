@@ -11,7 +11,7 @@ const BASE =
   "https://lawyer-id-tgi1.vercel.app";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticRoutes = ["", "/search", "/articles", "/ask", "/pricing", "/fields", "/cities", "/legal/terms", "/legal/privacy", "/legal/disclaimer"].map(
+  const staticRoutes = ["", "/search", "/articles", "/ask", "/pricing", "/about", "/fields", "/cities", "/legal/terms", "/legal/privacy", "/legal/disclaimer"].map(
     (p) => ({ url: `${BASE}${p}`, lastModified: new Date(), changeFrequency: "weekly" as const, priority: p === "" ? 1 : 0.6 })
   );
 

@@ -28,6 +28,7 @@ export function PublicFooter() {
             <div className="space-y-2">
               <div className="font-medium text-content">للمهنيّين</div>
               <Link href="/pricing" className="block text-muted hover:text-content">الباقات</Link>
+              <Link href="/about" className="block text-muted hover:text-content">من نحن</Link>
               <Link href="/signup" className="block text-muted hover:text-content">انضمّ إلى لام</Link>
               <Link href="/sign-in" className="block text-muted hover:text-content">تسجيل الدخول</Link>
             </div>

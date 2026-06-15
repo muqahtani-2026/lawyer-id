@@ -131,6 +131,29 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* Why LAM for professionals */}
+      <section className="border-y border-line bg-card/40">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <h2 className="text-center text-2xl font-bold text-content">لماذا لام للمهنيّين؟</h2>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { t: "حضور احترافيّ", d: "صفحة مهنيّة أنيقة تُبرز خبرتك ومجالك ومحتواك." },
+              { t: "قابليّة الاكتشاف", d: "تظهر في البحث وصفحات المجالات والمدن لمن يبحث عن مختصّ." },
+              { t: "نشر محتوى", d: "انشر مقالاتك على المنصّة بروابط مهيّأة لمحرّكات البحث." },
+              { t: "طلبات تواصل", d: "استقبل طلبات التواصل مباشرةً عبر القناة التي تختارها." },
+            ].map((v) => (
+              <div key={v.t} className="rounded-xl border border-line bg-base p-5">
+                <div className="text-lg font-semibold text-content">{v.t}</div>
+                <p className="mt-1 text-sm text-muted">{v.d}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-8 max-w-2xl text-center text-xs text-muted">
+            لام منصّة حضورٍ مهنيّ؛ لا تقدّم خدمات قانونيّة ولا استشارات، ولا تتدخّل في العلاقة بين المهنيّ وطالب الخدمة.
+          </p>
+        </div>
+      </section>
+
       {/* CTA for professionals */}
       <section className="mx-auto max-w-6xl px-4 py-14">
         <div className="rounded-2xl border border-line bg-gradient-to-l from-card to-elevated p-10 text-center">
