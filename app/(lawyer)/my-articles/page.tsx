@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getMyArticles, getPublishableDrafts } from "@/lib/queries/me";
 import { PublishDraftButton, ArticleStatusControl } from "@/components/dashboard/MeControls";
 
@@ -24,7 +25,10 @@ export default async function MyArticlesPage() {
                   <div className="truncate font-medium text-content">{d.draft_title ?? "بدون عنوان"}</div>
                   {d.draft_summary && <div className="truncate text-sm text-muted">{d.draft_summary}</div>}
                 </div>
-                <PublishDraftButton draftId={d.id} />
+                <div className="flex items-center gap-2">
+                  <Link href={`/article-editor?draft=${d.id}`} className="text-xs text-lawyer hover:underline">تحرير ونشر</Link>
+                  <PublishDraftButton draftId={d.id} />
+                </div>
               </div>
             ))}
           </div>
@@ -44,6 +48,7 @@ export default async function MyArticlesPage() {
                   <th className="p-3 font-medium">العنوان</th>
                   <th className="p-3 font-medium">المشاهدات</th>
                   <th className="p-3 font-medium">الحالة</th>
+                  <th className="p-3 font-medium">تحرير</th>
                 </tr>
               </thead>
               <tbody>
@@ -52,6 +57,7 @@ export default async function MyArticlesPage() {
                     <td className="p-3 text-content">{a.title}</td>
                     <td className="p-3 font-mono text-muted">{a.views_count ?? 0}</td>
                     <td className="p-3"><ArticleStatusControl id={a.id} status={a.status} /></td>
+                    <td className="p-3"><Link href={`/article-editor?article=${a.id}`} className="text-sm text-lawyer hover:underline">تحرير</Link></td>
                   </tr>
                 ))}
               </tbody>

@@ -166,3 +166,27 @@ export async function getMyDailyActivity(days = 30): Promise<DailyActivityPoint[
   });
   return Array.from(buckets.values());
 }
+
+export async function getDraftById(id: string) {
+  const { supabase, userId } = await uid();
+  if (!userId) return null;
+  const { data } = await supabase
+    .from("content_drafts")
+    .select("id, draft_title, draft_summary, draft_content, specialty_id")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data;
+}
+
+export async function getMyArticleById(id: string) {
+  const { supabase, userId } = await uid();
+  if (!userId) return null;
+  const { data } = await supabase
+    .from("articles")
+    .select("id, slug, title, excerpt, body, seo_title, seo_description, status, source_draft_id")
+    .eq("id", id)
+    .eq("professional_id", userId)
+    .maybeSingle();
+  return data;
+}

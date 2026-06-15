@@ -134,3 +134,91 @@ export async function savePublicProfile(input: {
   revalidatePath("/public-profile");
   return { ok: true };
 }
+
+/** نشر مسوّدة كمقال مع تعديلات المحامي (ينشئ/يحدّث مقالًا بحالة pending). */
+export async function publishDraftWithEdits(input: {
+  draftId: string;
+  title: string;
+  excerpt: string;
+  body: string;
+}): Promise<Res> {
+  const { supabase, userId } = await requireUser();
+  if (!userId) return { ok: false, error: "غير مصرّح" };
+  const title = input.title?.trim();
+  const body = input.body?.trim();
+  if (!title || title.length < 4) return { ok: false, error: "العنوان قصير جدًّا." };
+  if (!body || body.length < 20) return { ok: false, error: "المحتوى قصير جدًّا." };
+
+  const { data: draft } = await supabase
+    .from("content_drafts")
+    .select("id, specialty_id")
+    .eq("id", input.draftId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!draft) return { ok: false, error: "المسوّدة غير موجودة." };
+
+  // مقال موجود لهذه المسوّدة؟
+  const { data: existing } = await supabase
+    .from("articles")
+    .select("id")
+    .eq("source_draft_id", input.draftId)
+    .eq("professional_id", userId)
+    .maybeSingle();
+
+  const now = new Date().toISOString();
+  if (existing) {
+    const { error } = await supabase
+      .from("articles")
+      .update({ title, excerpt: input.excerpt?.trim() || null, body, status: "pending", updated_at: now })
+      .eq("id", existing.id)
+      .eq("professional_id", userId);
+    if (error) return { ok: false, error: "تعذّر الحفظ." };
+  } else {
+    const { error } = await supabase.from("articles").insert({
+      professional_id: userId,
+      source_draft_id: input.draftId,
+      specialty_id: draft.specialty_id ?? null,
+      slug: genSlug(title),
+      title,
+      excerpt: input.excerpt?.trim() || null,
+      body,
+      status: "pending",
+    });
+    if (error) return { ok: false, error: "تعذّر النشر (قد يكون العنوان مكرّرًا)." };
+  }
+  revalidatePath("/my-articles");
+  return { ok: true };
+}
+
+/** تحرير مقال قائم يملكه المحامي. */
+export async function updateMyArticle(input: {
+  id: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  seo_title?: string;
+  seo_description?: string;
+}): Promise<Res> {
+  const { supabase, userId } = await requireUser();
+  if (!userId) return { ok: false, error: "غير مصرّح" };
+  const title = input.title?.trim();
+  const body = input.body?.trim();
+  if (!title || title.length < 4) return { ok: false, error: "العنوان قصير جدًّا." };
+  if (!body || body.length < 20) return { ok: false, error: "المحتوى قصير جدًّا." };
+
+  const { error } = await supabase
+    .from("articles")
+    .update({
+      title,
+      excerpt: input.excerpt?.trim() || null,
+      body,
+      seo_title: input.seo_title?.trim() || null,
+      seo_description: input.seo_description?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.id)
+    .eq("professional_id", userId);
+  if (error) return { ok: false, error: "تعذّر الحفظ." };
+  revalidatePath("/my-articles");
+  return { ok: true };
+}
