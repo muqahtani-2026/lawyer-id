@@ -22,6 +22,8 @@ export function PublicFooter() {
               <Link href="/search" className="block text-muted hover:text-content">ابحث عن مختصّ</Link>
               <Link href="/articles" className="block text-muted hover:text-content">المقالات</Link>
               <Link href="/ask" className="block text-muted hover:text-content">اسأل مختصًّا</Link>
+              <Link href="/fields" className="block text-muted hover:text-content">المجالات</Link>
+              <Link href="/cities" className="block text-muted hover:text-content">المدن</Link>
             </div>
             <div className="space-y-2">
               <div className="font-medium text-content">للمهنيّين</div>

@@ -206,3 +206,17 @@ export async function getArticlesByProfessional(professionalId: string) {
     .order("published_at", { ascending: false });
   return data ?? [];
 }
+
+/** المدن التي تضمّ مهنيّين عامّين (للفهرس وصفحات المدن). */
+export async function getActiveCities(): Promise<{ city: string; count: number }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("v_public_professionals").select("city");
+  const counts = new Map<string, number>();
+  (data ?? []).forEach((r) => {
+    const c = (r.city ?? "").trim();
+    if (c) counts.set(c, (counts.get(c) ?? 0) + 1);
+  });
+  return Array.from(counts.entries())
+    .map(([city, count]) => ({ city, count }))
+    .sort((a, b) => b.count - a.count);
+}
