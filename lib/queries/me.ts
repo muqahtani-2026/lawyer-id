@@ -233,3 +233,34 @@ export async function getMyArticleLeadCounts(): Promise<Record<string, number>> 
   });
   return m;
 }
+
+/** أنظمة تخصّص المحامي (لاختيار مصدر في استوديو المحتوى). */
+export async function getMyCorpusForStudio(): Promise<{ id: string; title: string; reference_number: string | null }[]> {
+  const { supabase, userId } = await uid();
+  if (!userId) return [];
+  // التخصّص الرئيس للمحامي
+  const { data: spec } = await supabase
+    .from("user_specialties")
+    .select("specialty_id, is_primary")
+    .eq("user_id", userId)
+    .order("is_primary", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!spec?.specialty_id) return [];
+  const { data } = await supabase
+    .from("legal_corpus")
+    .select("id, title, reference_number")
+    .eq("specialty_id", spec.specialty_id)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  return (data ?? []) as { id: string; title: string; reference_number: string | null }[];
+}
+
+/** هل حساب المحامي معتمد؟ (لبوّابة استوديو المحتوى) */
+export async function getMyApprovalStatus(): Promise<string> {
+  const { supabase, userId } = await uid();
+  if (!userId) return "pending";
+  const { data } = await supabase.from("profiles").select("approval_status").eq("id", userId).maybeSingle();
+  return (data?.approval_status as string) ?? "approved";
+}

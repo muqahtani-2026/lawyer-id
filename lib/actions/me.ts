@@ -249,3 +249,49 @@ export async function saveNotificationPrefs(input: {
   revalidatePath("/settings");
   return { ok: true };
 }
+
+/** استوديو المحتوى: طلب توليد مسوّدة عند الطلب عبر مولّد n8n (نفس عقد الإنتاج في billing). */
+export async function requestStudioGeneration(input: {
+  legalSourceId: string;
+  contentFormat: string;
+  tone: string;
+}): Promise<{ ok: boolean; queued?: boolean; error?: string }> {
+  const { supabase, userId } = await requireUser();
+  if (!userId) return { ok: false, error: "غير مصرّح" };
+
+  // لا توليد قبل اعتماد الحساب
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("approval_status")
+    .eq("id", userId)
+    .maybeSingle();
+  if ((prof?.approval_status ?? "approved") !== "approved") {
+    return { ok: false, error: "حسابك بانتظار الاعتماد — لا يمكن توليد المحتوى قبل الموافقة." };
+  }
+
+  const hook = process.env.N8N_GENERATE_WEBHOOK_URL;
+  if (!hook) {
+    return { ok: false, error: "مولّد المحتوى غير موصول بعد. تواصل مع الإدارة لربط n8n." };
+  }
+  try {
+    const res = await fetch(hook, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.N8N_WEBHOOK_SECRET ? { "x-webhook-secret": process.env.N8N_WEBHOOK_SECRET } : {}),
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        count: 1,
+        reason: "studio",
+        legal_source_id: input.legalSourceId || null,
+        content_format: input.contentFormat || null,
+        tone: input.tone || null,
+      }),
+    });
+    if (!res.ok) return { ok: false, error: "تعذّر إرسال الطلب للمولّد." };
+    return { ok: true, queued: true };
+  } catch {
+    return { ok: false, error: "تعذّر الاتصال بالمولّد." };
+  }
+}

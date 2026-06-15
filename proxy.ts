@@ -10,7 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 
 const PROTECTED_PATHS = [
-  "/dashboard", "/review", "/profile", "/admin",
+  "/dashboard", "/review", "/studio", "/profile", "/admin",
   "/my-articles", "/article-editor", "/public-profile",
   "/inbox", "/leads", "/analytics", "/library", "/schedule", "/settings",
 ];
