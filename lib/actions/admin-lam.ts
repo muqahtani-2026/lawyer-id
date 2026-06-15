@@ -140,3 +140,32 @@ export async function toggleField(id: string, isActive: boolean): Promise<Res> {
   revalidatePath("/admin/taxonomy");
   return { ok: true };
 }
+
+/* --------------------------- إدارة المهنيّ (Admin) --------------------------- */
+
+/** تفعيل/تعطيل ظهور المهنيّ في الموقع العام. */
+export async function adminSetProfessionalPublic(userId: string, isPublic: boolean): Promise<Res> {
+  if (!(await requireAdmin())) return DENIED;
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ is_public: isPublic, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (error) return { ok: false, error: "تعذّر التحديث." };
+  revalidatePath(`/admin/lawyers/${userId}`);
+  revalidatePath("/admin/lawyers");
+  return { ok: true };
+}
+
+/** تغيير مستوى اشتراك المهنيّ (تجاوز إداريّ). */
+export async function adminSetProfessionalTier(userId: string, tier: "free" | "pro" | "premium"): Promise<Res> {
+  if (!(await requireAdmin())) return DENIED;
+  if (!["free", "pro", "premium"].includes(tier)) return { ok: false, error: "مستوى غير صالح." };
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ tier, updated_at: new Date().toISOString() })
+    .eq("id", userId);
+  if (error) return { ok: false, error: "تعذّر التحديث." };
+  revalidatePath(`/admin/lawyers/${userId}`);
+  revalidatePath("/admin/lawyers");
+  return { ok: true };
+}
