@@ -139,3 +139,25 @@ export async function getCredentialSignedUrl(path: string): Promise<string | nul
   const { data } = await supabaseAdmin.storage.from("credentials").createSignedUrl(path, 300);
   return data?.signedUrl ?? null;
 }
+
+/* --------------------------- جلب الأنظمة (staging) --------------------------- */
+export async function getIngestQueue(status: string = "pending") {
+  const { data } = await supabaseAdmin
+    .from("regulation_ingest")
+    .select("id, source_channel, source_authority, source_url, title, specialty_id, status, fetched_at")
+    .eq("status", status)
+    .order("fetched_at", { ascending: false })
+    .limit(200);
+  return data ?? [];
+}
+
+export async function getIngestCounts() {
+  const a = supabaseAdmin;
+  const head = { count: "exact" as const, head: true };
+  const [pending, imported, rejected] = await Promise.all([
+    a.from("regulation_ingest").select("*", head).eq("status", "pending"),
+    a.from("regulation_ingest").select("*", head).eq("status", "imported"),
+    a.from("regulation_ingest").select("*", head).eq("status", "rejected"),
+  ]);
+  return { pending: pending.count ?? 0, imported: imported.count ?? 0, rejected: rejected.count ?? 0 };
+}

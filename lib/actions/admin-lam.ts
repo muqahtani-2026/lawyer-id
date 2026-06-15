@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { runIngestion, fetchRegulationText } from "@/lib/ingestion/run";
 
 interface Res {
   ok: boolean;
@@ -204,4 +205,63 @@ export async function adminCredentialUrl(path: string): Promise<{ ok: boolean; u
   const { data } = await supabaseAdmin.storage.from("credentials").createSignedUrl(path, 300);
   if (!data?.signedUrl) return { ok: false, error: "تعذّر إنشاء الرابط." };
   return { ok: true, url: data.signedUrl };
+}
+
+/* --------------------------- جلب الأنظمة (Ingestion) --------------------------- */
+
+export async function runIngestionNow(): Promise<{ ok: boolean; inserted?: number; error?: string }> {
+  if (!(await requireAdmin())) return { ok: false, error: "غير مصرّح" };
+  try {
+    const r = await runIngestion();
+    revalidatePath("/admin/ingestion");
+    return { ok: true, inserted: r.inserted };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "خطأ" };
+  }
+}
+
+/** استيراد عنصر مجلوب إلى legal_corpus (مع جلب النصّ best-effort) + ربط التخصّص. */
+export async function importIngested(id: string, specialtyId: string): Promise<Res> {
+  if (!(await requireAdmin())) return DENIED;
+  if (!specialtyId) return { ok: false, error: "اختر التخصّص." };
+  const { data: row } = await supabaseAdmin
+    .from("regulation_ingest")
+    .select("id, title, source_url, source_authority, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (!row) return { ok: false, error: "العنصر غير موجود." };
+  if (row.status === "imported") return { ok: false, error: "مستورد مسبقًا." };
+
+  const fullText = (await fetchRegulationText(row.source_url as string)) || (row.title as string) || "—";
+
+  const { data: inserted, error: insErr } = await supabaseAdmin
+    .from("legal_corpus")
+    .insert({
+      title: (row.title as string)?.slice(0, 300) || "نظام",
+      full_text: fullText,
+      source_authority: row.source_authority,
+      source_url: row.source_url,
+      specialty_id: specialtyId,
+      is_active: true,
+    })
+    .select("id")
+    .maybeSingle();
+  if (insErr) return { ok: false, error: "تعذّر الإدراج في الأنظمة." };
+
+  await supabaseAdmin
+    .from("regulation_ingest")
+    .update({ status: "imported", specialty_id: specialtyId, imported_corpus_id: inserted?.id ?? null })
+    .eq("id", id);
+
+  revalidatePath("/admin/ingestion");
+  revalidatePath("/admin/legal-corpus");
+  return { ok: true };
+}
+
+export async function rejectIngested(id: string): Promise<Res> {
+  if (!(await requireAdmin())) return DENIED;
+  const { error } = await supabaseAdmin.from("regulation_ingest").update({ status: "rejected" }).eq("id", id);
+  if (error) return { ok: false, error: "تعذّر الرفض." };
+  revalidatePath("/admin/ingestion");
+  return { ok: true };
 }
