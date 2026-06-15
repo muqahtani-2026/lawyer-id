@@ -15,6 +15,7 @@ export type AdminLawyerRow = {
   last_activity: string | null;
   has_lawyer_profile: boolean;
   samples_count: number;
+  approval_status: string | null;
 };
 
 export type AdminLawyerDetail = {
@@ -80,7 +81,7 @@ export async function listLawyers(): Promise<AdminLawyerRow[]> {
 
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, full_name, email, is_admin, created_at")
+    .select("id, full_name, email, is_admin, approval_status, created_at")
     .order("created_at", { ascending: false });
 
   if (!profiles || profiles.length === 0) return [];
@@ -169,6 +170,7 @@ export async function listLawyers(): Promise<AdminLawyerRow[]> {
     last_activity: lastActivity.get(p.id as string) ?? null,
     has_lawyer_profile: hasLawyerProfile.has(p.id as string),
     samples_count: samplesCount.get(p.id as string) ?? 0,
+    approval_status: (p.approval_status as string | null) ?? null,
   }));
 }
 

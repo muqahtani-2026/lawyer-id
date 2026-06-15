@@ -140,7 +140,7 @@ export default function ConnectGuide({
           <span className="cgg-mark">لام</span>
           <span>
             <span className="cgg-bname" style={{ display: "block" }}>لام</span>
-            <span className="cgg-bsub">SAUDI · LEGAL · COMMERCIAL</span>
+            <span className="cgg-bsub">SAUDI · LEGAL</span>
           </span>
         </button>
         <button type="button" className="cgg-back" onClick={() => { window.history.back(); }}>

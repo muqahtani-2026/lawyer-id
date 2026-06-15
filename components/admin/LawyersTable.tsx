@@ -164,6 +164,17 @@ export function LawyersTable({ lawyers }: { lawyers: AdminLawyerRow[] }) {
                         <span className="font-medium text-[#e6f1ff]">
                           {l.full_name ?? "—"}
                         </span>
+                        {l.approval_status && l.approval_status !== "approved" && (
+                          <span
+                            className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider"
+                            style={{
+                              backgroundColor: l.approval_status === "rejected" ? "#ef4444" : "#fbbf24",
+                              color: "#0a192f",
+                            }}
+                          >
+                            {l.approval_status === "rejected" ? "مرفوض" : "بانتظار"}
+                          </span>
+                        )}
                         {l.is_admin && (
                           <span
                             className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider"

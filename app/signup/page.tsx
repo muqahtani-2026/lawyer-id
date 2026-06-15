@@ -272,7 +272,7 @@ export default function SignupPage() {
                 لام
               </span>
               <span className="text-[10px] font-mono text-text-secondary tracking-wider">
-                SAUDI · LEGAL · COMMERCIAL
+                SAUDI · LEGAL
               </span>
             </div>
           </Link>

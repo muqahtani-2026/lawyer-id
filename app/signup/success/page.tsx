@@ -24,7 +24,7 @@ function SuccessContent() {
             <div className="flex flex-col leading-tight">
               <span className="font-display font-semibold">لام</span>
               <span className="text-[10px] font-mono text-text-secondary tracking-wider">
-                SAUDI · LEGAL · COMMERCIAL
+                SAUDI · LEGAL
               </span>
             </div>
           </Link>

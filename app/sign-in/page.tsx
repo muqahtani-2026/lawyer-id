@@ -100,7 +100,7 @@ function SignInContent() {
               لام
             </div>
             <div className="text-[10px] text-[#8892b0] tracking-[1.5px] mt-1">
-              SAUDI · LEGAL · COMMERCIAL
+              SAUDI · LEGAL
             </div>
           </div>
         </div>
