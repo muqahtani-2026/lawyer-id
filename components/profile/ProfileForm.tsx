@@ -298,7 +298,7 @@ export function ProfileForm({ profile }: { profile: FullProfile }) {
           ملاحظات الأسلوب
         </label>
         <p className="text-xs text-[#8892b0] mb-3">
-          نصّ حرّ عن أسلوبك (مثال: "أبدأ بسؤال يستفزّ التفكير، وأختم بسؤال للمتابعين").
+          نصّ حرّ عن أسلوبك (مثال: «أبدأ بسؤال يستفزّ التفكير، وأختم بسؤال للمتابعين»).
         </p>
         <textarea
           value={styleNotes}

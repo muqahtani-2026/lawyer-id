@@ -4,6 +4,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -22,7 +23,7 @@ function SignInContent() {
   const [email, setEmail] = useState(initialEmail);
   const [status, setStatus] = useState<Status>(urlError ? "error" : "idle");
   const [errorMessage, setErrorMessage] = useState(urlError || "");
-  const [autoSentOnce, setAutoSentOnce] = useState(false);
+  const autoSentRef = useRef(false);
 
   const sendMagicLink = useCallback(async (rawEmail: string) => {
     const trimmed = rawEmail.trim().toLowerCase();
@@ -80,11 +81,11 @@ function SignInContent() {
 
   // Auto-send Magic Link when user arrives from /signup/success
   useEffect(() => {
-    if (hint === "signed-up" && initialEmail && !autoSentOnce) {
-      setAutoSentOnce(true);
+    if (hint === "signed-up" && initialEmail && !autoSentRef.current) {
+      autoSentRef.current = true;
       sendMagicLink(initialEmail);
     }
-  }, [hint, initialEmail, autoSentOnce, sendMagicLink]);
+  }, [hint, initialEmail, sendMagicLink]);
 
   return (
     <div className="min-h-screen bg-[#0a192f] flex items-center justify-center px-4 py-12">
@@ -92,7 +93,7 @@ function SignInContent() {
         {/* Brand Header */}
         <div className="flex items-center justify-center gap-3 mb-10">
           <div className="w-11 h-11 border-2 border-[#4a9eff] rounded-md flex items-center justify-center font-mono text-lg font-bold text-[#4a9eff]">
-            Li
+            لام
           </div>
           <div className="text-right">
             <div className="text-[#e6f1ff] text-xl font-semibold">
@@ -113,7 +114,7 @@ function SignInContent() {
                 setStatus("idle");
                 setEmail("");
                 setErrorMessage("");
-                setAutoSentOnce(false);
+                autoSentRef.current = false;
               }}
             />
           ) : (

@@ -31,7 +31,22 @@ export const metadata: Metadata = {
   },
   description:
     "لام منصّة حضورٍ مهنيّ سعوديّة: اجعل خبرتك مرئيّة، قابلةً للاكتشاف، وموثوقة. للمحامين والمستشارين والخبراء والأكاديميّين والمختصّين.",
-  metadataBase: new URL("https://lawyer-id-tgi1.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://lawyer-id-tgi1.vercel.app"),
+  applicationName: "لام",
+  keywords: ["لام", "حضور مهنيّ", "محامون", "مستشارون", "خبراء", "السعودية", "بحث عن مختص"],
+  openGraph: {
+    type: "website",
+    siteName: "لام",
+    locale: "ar_SA",
+    title: "لام | منصّة الحضور المهنيّ",
+    description: "اجعل خبرتك مرئيّة، قابلةً للاكتشاف، وموثوقة.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "لام | منصّة الحضور المهنيّ",
+    description: "اجعل خبرتك مرئيّة، قابلةً للاكتشاف، وموثوقة.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

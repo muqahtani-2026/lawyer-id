@@ -121,7 +121,7 @@ export default function TelegramOnboardingPage() {
             className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-[#4a9eff] text-[#4a9eff]"
             style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
           >
-            Li
+            لام
           </div>
           <div className="leading-tight">
             <div className="text-sm font-semibold text-[#e6f1ff]">لام</div>
