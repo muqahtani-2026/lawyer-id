@@ -9,7 +9,11 @@ import { NextResponse, type NextRequest } from "next/server";
  * - /sign-in                       → redirect to /dashboard if signed in
  */
 
-const PROTECTED_PATHS = ["/dashboard", "/review", "/profile", "/admin"];
+const PROTECTED_PATHS = [
+  "/dashboard", "/review", "/profile", "/admin",
+  "/my-articles", "/article-editor", "/public-profile",
+  "/inbox", "/leads", "/analytics", "/library", "/schedule",
+];
 const GUEST_ONLY_PATHS = ["/sign-in"];
 
 export async function proxy(request: NextRequest) {
