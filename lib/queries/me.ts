@@ -190,3 +190,28 @@ export async function getMyArticleById(id: string) {
     .maybeSingle();
   return data;
 }
+
+export interface MyNotificationPrefs {
+  telegram_enabled: boolean;
+  telegram_chat_id: string | null;
+  email_enabled: boolean;
+  email_address: string | null;
+  preferred_send_hour: number | null;
+  notify_on_lead: boolean;
+  notify_on_question: boolean;
+  weekly_digest: boolean;
+}
+
+export async function getMyNotificationPrefs(): Promise<MyNotificationPrefs | null> {
+  const { supabase, userId } = await uid();
+  if (!userId) return null;
+  const { data } = await supabase
+    .from("notification_preferences")
+    .select("telegram_enabled, telegram_chat_id, email_enabled, email_address, preferred_send_hour, notify_on_lead, notify_on_question, weekly_digest")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as MyNotificationPrefs) ?? {
+    telegram_enabled: false, telegram_chat_id: null, email_enabled: false, email_address: null,
+    preferred_send_hour: 8, notify_on_lead: true, notify_on_question: true, weekly_digest: false,
+  };
+}

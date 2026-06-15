@@ -222,3 +222,30 @@ export async function updateMyArticle(input: {
   revalidatePath("/my-articles");
   return { ok: true };
 }
+
+export async function saveNotificationPrefs(input: {
+  email_enabled: boolean;
+  notify_on_lead: boolean;
+  notify_on_question: boolean;
+  weekly_digest: boolean;
+  preferred_send_hour: number;
+}): Promise<Res> {
+  const { supabase, userId } = await requireUser();
+  if (!userId) return { ok: false, error: "غير مصرّح" };
+  const { data: existing } = await supabase
+    .from("notification_preferences").select("user_id").eq("user_id", userId).maybeSingle();
+  const payload = {
+    email_enabled: input.email_enabled,
+    notify_on_lead: input.notify_on_lead,
+    notify_on_question: input.notify_on_question,
+    weekly_digest: input.weekly_digest,
+    preferred_send_hour: input.preferred_send_hour,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = existing
+    ? await supabase.from("notification_preferences").update(payload).eq("user_id", userId)
+    : await supabase.from("notification_preferences").insert({ user_id: userId, ...payload });
+  if (error) return { ok: false, error: "تعذّر الحفظ." };
+  revalidatePath("/settings");
+  return { ok: true };
+}

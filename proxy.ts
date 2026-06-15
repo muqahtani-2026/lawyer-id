@@ -12,7 +12,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const PROTECTED_PATHS = [
   "/dashboard", "/review", "/profile", "/admin",
   "/my-articles", "/article-editor", "/public-profile",
-  "/inbox", "/leads", "/analytics", "/library", "/schedule",
+  "/inbox", "/leads", "/analytics", "/library", "/schedule", "/settings",
 ];
 const GUEST_ONLY_PATHS = ["/sign-in"];
 
