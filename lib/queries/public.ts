@@ -220,3 +220,30 @@ export async function getActiveCities(): Promise<{ city: string; count: number }
     .map(([city, count]) => ({ city, count }))
     .sort((a, b) => b.count - a.count);
 }
+
+/** مقالات ذات صلة (نفس التخصّص، باستثناء الحاليّ). */
+export async function getRelatedArticles(
+  specialtyId: string | null,
+  excludeId: string,
+  limit = 3
+): Promise<PublicArticleListItem[]> {
+  if (!specialtyId) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("articles")
+    .select("id, slug, title, excerpt, specialty_id, professional_id, published_at")
+    .eq("status", "published")
+    .eq("specialty_id", specialtyId)
+    .neq("id", excludeId)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((a) => ({
+    id: a.id,
+    slug: a.slug,
+    title: a.title,
+    excerpt: a.excerpt,
+    specialty_name: null,
+    professional_name: null,
+    published_at: a.published_at,
+  })) as PublicArticleListItem[];
+}

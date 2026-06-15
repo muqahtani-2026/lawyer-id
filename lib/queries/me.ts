@@ -215,3 +215,20 @@ export async function getMyNotificationPrefs(): Promise<MyNotificationPrefs | nu
     preferred_send_hour: 8, notify_on_lead: true, notify_on_question: true, weekly_digest: false,
   };
 }
+
+/** عدد العملاء المحتملين المنسوبين لكلّ مقال (source_article_id). */
+export async function getMyArticleLeadCounts(): Promise<Record<string, number>> {
+  const { supabase, userId } = await uid();
+  if (!userId) return {};
+  const { data } = await supabase
+    .from("communication_requests")
+    .select("source_article_id")
+    .eq("professional_id", userId)
+    .not("source_article_id", "is", null);
+  const m: Record<string, number> = {};
+  (data ?? []).forEach((r) => {
+    const k = r.source_article_id as string | null;
+    if (k) m[k] = (m[k] ?? 0) + 1;
+  });
+  return m;
+}

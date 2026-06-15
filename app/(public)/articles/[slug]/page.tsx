@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { TierBadge } from "@/components/ui/badge";
 import { ContactPanel } from "@/components/public/ContactPanel";
-import { getArticleBySlug, logEvent } from "@/lib/queries/public";
+import { getArticleBySlug, getRelatedArticles, logEvent } from "@/lib/queries/public";
 
 export const revalidate = 120;
 
@@ -39,6 +39,13 @@ export default async function ArticlePage({
   const { article, author } = data;
 
   void logEvent("article", article.id, "view");
+
+  const related = await getRelatedArticles(article.specialty_id ?? null, article.id, 3);
+  const words = (article.body ?? "").trim().split(/\s+/).filter(Boolean).length;
+  const readingMins = Math.max(1, Math.round(words / 200));
+  const dateStr = article.published_at
+    ? new Date(article.published_at).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" })
+    : null;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -85,6 +92,11 @@ export default async function ArticlePage({
               <TierBadge tier={author.tier} />
             </Link>
           )}
+          <div className="mt-2 text-sm text-muted">
+            {dateStr && <span>{dateStr}</span>}
+            {dateStr && <span className="mx-2">·</span>}
+            <span>{readingMins} دقائق قراءة</span>
+          </div>
         </header>
 
         <div className="mt-6 whitespace-pre-line text-lg leading-relaxed text-content/90">
@@ -110,6 +122,24 @@ export default async function ArticlePage({
             sourceArticleId={article.id}
           />
         </div>
+      )}
+
+      {related.length > 0 && (
+        <section className="mt-12 border-t border-line pt-8">
+          <h2 className="text-xl font-bold text-content">مقالات ذات صلة</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            {related.map((r) => (
+              <Link
+                key={r.id}
+                href={`/articles/${encodeURIComponent(r.slug)}`}
+                className="rounded-xl border border-line bg-card p-4 transition-colors hover:border-lawyer"
+              >
+                <div className="font-semibold leading-snug text-content line-clamp-2">{r.title}</div>
+                {r.excerpt && <p className="mt-2 line-clamp-2 text-sm text-muted">{r.excerpt}</p>}
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { getMyArticles, getPublishableDrafts } from "@/lib/queries/me";
+import { getMyArticles, getPublishableDrafts, getMyArticleLeadCounts } from "@/lib/queries/me";
 import { PublishDraftButton, ArticleStatusControl } from "@/components/dashboard/MeControls";
 
 export const metadata = { title: "مقالاتي" };
 
 export default async function MyArticlesPage() {
-  const [articles, drafts] = await Promise.all([getMyArticles(), getPublishableDrafts()]);
+  const [articles, drafts, leadCounts] = await Promise.all([getMyArticles(), getPublishableDrafts(), getMyArticleLeadCounts()]);
 
   return (
     <div className="p-6 md:p-8">
@@ -47,6 +47,7 @@ export default async function MyArticlesPage() {
                 <tr>
                   <th className="p-3 font-medium">العنوان</th>
                   <th className="p-3 font-medium">المشاهدات</th>
+                  <th className="p-3 font-medium">عملاء من المقال</th>
                   <th className="p-3 font-medium">الحالة</th>
                   <th className="p-3 font-medium">تحرير</th>
                 </tr>
@@ -56,6 +57,7 @@ export default async function MyArticlesPage() {
                   <tr key={a.id} className="border-t border-line bg-card">
                     <td className="p-3 text-content">{a.title}</td>
                     <td className="p-3 font-mono text-muted">{a.views_count ?? 0}</td>
+                    <td className="p-3 font-mono text-premium">{leadCounts[a.id] ?? 0}</td>
                     <td className="p-3"><ArticleStatusControl id={a.id} status={a.status} /></td>
                     <td className="p-3"><Link href={`/article-editor?article=${a.id}`} className="text-sm text-lawyer hover:underline">تحرير</Link></td>
                   </tr>
