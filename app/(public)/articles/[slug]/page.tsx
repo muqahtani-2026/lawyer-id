@@ -48,9 +48,21 @@ export default async function ArticlePage({
     author: author ? { "@type": "Person", name: author.full_name } : undefined,
   };
 
+  const BASE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://lawyer-id-tgi1.vercel.app";
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "الرئيسة", item: BASE + "/" },
+      { "@type": "ListItem", position: 2, name: "المقالات", item: BASE + "/articles" },
+      { "@type": "ListItem", position: 3, name: article.title },
+    ],
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
       <nav className="text-sm text-muted">
         <Link href="/" className="hover:text-content">الرئيسة</Link>

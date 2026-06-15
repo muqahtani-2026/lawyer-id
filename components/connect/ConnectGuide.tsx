@@ -139,7 +139,7 @@ export default function ConnectGuide({
         <button type="button" className="cgg-brand" onClick={() => { window.location.href = homeHref; }}>
           <span className="cgg-mark">Li</span>
           <span>
-            <span className="cgg-bname" style={{ display: "block" }}>Lawyer ID</span>
+            <span className="cgg-bname" style={{ display: "block" }}>لام</span>
             <span className="cgg-bsub">SAUDI · LEGAL · COMMERCIAL</span>
           </span>
         </button>

@@ -96,7 +96,7 @@ function SignInContent() {
           </div>
           <div className="text-right">
             <div className="text-[#e6f1ff] text-xl font-semibold">
-              Lawyer ID
+              لام
             </div>
             <div className="text-[10px] text-[#8892b0] tracking-[1.5px] mt-1">
               SAUDI · LEGAL · COMMERCIAL

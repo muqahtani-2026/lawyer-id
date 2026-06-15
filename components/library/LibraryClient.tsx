@@ -223,7 +223,7 @@ export default function LibraryClient({
               </span>
             </div>
             <p className="mt-1 text-sm" style={{ color: C.sub }}>
-              ارفع مستنداتك ليبني Lawyer ID مسوّداتك من معرفتك أنت.
+              ارفع مستنداتك ليبني لام مسوّداتك من معرفتك أنت.
             </p>
           </div>
         </header>

@@ -42,7 +42,7 @@ export default async function UpgradePage({
     <div className="up-root">
       <style>{CSS}</style>
       <div className="up-card">
-        <span className="up-badge">Lawyer ID Pro</span>
+        <span className="up-badge">لام Pro</span>
         <h1 className="up-h1">ترقية إلى Pro</h1>
         <p className="up-price">
           <b>{price}</b> ريال / شهر

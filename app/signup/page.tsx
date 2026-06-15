@@ -248,7 +248,7 @@ export default function SignupPage() {
             <BrandMark variant="lawyer" size="sm" />
             <div className="flex flex-col leading-tight">
               <span className="font-display font-semibold text-text-primary">
-                Lawyer ID
+                لام
               </span>
               <span className="text-[10px] font-mono text-text-secondary tracking-wider">
                 SAUDI · LEGAL · COMMERCIAL

@@ -14,7 +14,7 @@ const writingStyleOptions = [
   { value: "formal", label: "رسميّ", desc: "صياغة قانونيّة دقيقة. للقطاع المهنيّ." },
   { value: "friendly", label: "وديّ", desc: "نبرة قريبة. للجمهور العامّ." },
   { value: "educational", label: "تعليميّ", desc: "يشرح بالأمثلة. للمبتدئين." },
-  { value: "analytical", label: "تحليليّ", desc: "يستخرج الدروس. للزملاء المحامين." },
+  { value: "analytical", label: "تحليليّ", desc: "يستخرج الدروس. للزملاء المختصّين." },
   { value: "concise", label: "مُختصر", desc: "نقاط مكثّفة. للتغريدات." },
 ];
 

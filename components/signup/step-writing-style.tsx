@@ -17,7 +17,7 @@ const TONES: { value: Tone; label: string; description: string }[] = [
   { value: "formal",      label: "رسميّة",   description: "صياغة قانونيّة مهنيّة، مناسبة للشركات الكبرى." },
   { value: "friendly",    label: "وديّة",     description: "قريبة من القارئ، بدون تكلّف، للجمهور العام." },
   { value: "educational", label: "تعليميّة", description: "تشرح بالأمثلة، مناسبة للمبتدئين والطلّاب." },
-  { value: "analytical",  label: "تحليليّة", description: "تستخرج الدروس، مناسبة للزملاء المحامين." },
+  { value: "analytical",  label: "تحليليّة", description: "تستخرج الدروس، مناسبة للزملاء المختصّين." },
   { value: "concise",     label: "مختصرة",  description: "مباشرة، تقول الفكرة في أقلّ كلمات ممكنة." },
 ];
 

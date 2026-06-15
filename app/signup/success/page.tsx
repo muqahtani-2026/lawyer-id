@@ -22,7 +22,7 @@ function SuccessContent() {
           <Link href="/" className="flex items-center gap-3">
             <BrandMark variant="lawyer" size="sm" />
             <div className="flex flex-col leading-tight">
-              <span className="font-display font-semibold">Lawyer ID</span>
+              <span className="font-display font-semibold">لام</span>
               <span className="text-[10px] font-mono text-text-secondary tracking-wider">
                 SAUDI · LEGAL · COMMERCIAL
               </span>
@@ -56,7 +56,7 @@ function SuccessContent() {
 
           <p className="text-text-secondary text-lg mb-2">
             مرحبًا بك في{" "}
-            <span className="text-accent-lawyer font-medium">Lawyer ID</span>.
+            <span className="text-accent-lawyer font-medium">لام</span>.
           </p>
 
           {email && (

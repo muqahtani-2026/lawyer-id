@@ -50,7 +50,7 @@ export default async function AdminOverviewPage() {
           نَظْرة عامّة على المنصّة
         </h1>
         <p className="text-[#8892b0] leading-relaxed max-w-2xl">
-          إحصاءات شاملة عن جميع المحامين والمسوّدات على Lawyer ID.
+          إحصاءات شاملة عن جميع المهنيّين والمسوّدات على لام.
         </p>
       </header>
 
@@ -64,12 +64,12 @@ export default async function AdminOverviewPage() {
         <AdminKpiCard
           label="TOTAL LAWYERS"
           value={lawyerStats.total}
-          subtext="إجماليّ المحامين المسجّلين"
+          subtext="إجماليّ المهنيّين المسجّلين"
         />
         <AdminKpiCard
           label="PENDING REVIEW"
           value={draftStats.pending}
-          subtext="بانتظار مراجعة المحامي"
+          subtext="بانتظار مراجعة المهنيّ"
           tone="warning"
         />
         <AdminKpiCard

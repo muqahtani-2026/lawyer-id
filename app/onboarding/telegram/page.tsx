@@ -124,7 +124,7 @@ export default function TelegramOnboardingPage() {
             Li
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-semibold text-[#e6f1ff]">Lawyer ID</div>
+            <div className="text-sm font-semibold text-[#e6f1ff]">لام</div>
             <div className="text-[10px] tracking-wider text-[#8892b0]">
               SAUDI · LEGAL · COMMERCIAL
             </div>
