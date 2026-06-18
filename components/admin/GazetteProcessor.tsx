@@ -87,19 +87,22 @@ export function GazetteProcessor({
     setTesting(false);
   }
 
-  async function processAll() {
+  async function processAll(reprocess = false) {
     setRunning(true);
     setDone(false);
-    addLog("بدء المعالجة…");
+    addLog(reprocess ? "بدء إعادة المعالجة (كلّ الأعداد)…" : "بدء المعالجة…");
     let safety = 0;
-    while (safety < 200) {
+    let processedCount = 0;
+    let afterIssue: number | undefined = undefined;
+    // حدّ أمان كبير يكفي للأرشيف الكامل (7000+ عدد، دفعة 1 لكلّ طلب).
+    while (safety < 9000) {
       safety++;
       let res: BatchResult;
       try {
         const r = await fetch("/api/gazette/process", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ limit: 3 }),
+          body: JSON.stringify({ limit: 1, reprocess, afterIssue }),
         });
         res = await r.json();
       } catch (e) {
@@ -119,10 +122,16 @@ export function GazetteProcessor({
             (item.error ? ` — ${item.error}` : "")
         );
       }
+      processedCount += res.processed;
       setRemaining(res.remaining);
-      if (res.remaining === 0 || res.processed === 0) {
+      // في إعادة المعالجة: نتقدّم برقم آخر عدد عولج (تفادي الدوران على نفس العدد).
+      if (reprocess && res.results.length > 0) {
+        afterIssue = res.results[res.results.length - 1].issue_number;
+      }
+      // التوقّف: لا جديد عولج (انتهت الأعداد).
+      if (res.processed === 0) {
         setDone(true);
-        addLog("اكتملت المعالجة ✓");
+        addLog(`اكتملت المعالجة ✓ (عولج ${processedCount})`);
         break;
       }
     }
@@ -164,13 +173,22 @@ export function GazetteProcessor({
               المتبقّي: <span className="font-mono text-[#4a9eff]">{remaining}</span> عددًا.
             </div>
           </div>
-          <button
-            onClick={processAll}
-            disabled={running}
-            className="rounded-lg bg-[#fbbf24] px-5 py-2.5 font-semibold text-[#0a192f] transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
-            {running ? "جارٍ المعالجة…" : done ? "إعادة التشغيل" : "ابدأ المعالجة"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => processAll(false)}
+              disabled={running}
+              className="rounded-lg bg-[#fbbf24] px-5 py-2.5 font-semibold text-[#0a192f] transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {running ? "جارٍ المعالجة…" : done ? "إعادة التشغيل" : "ابدأ المعالجة"}
+            </button>
+            <button
+              onClick={() => processAll(true)}
+              disabled={running}
+              className="rounded-lg border border-[#fbbf24] px-5 py-2.5 font-semibold text-[#fbbf24] transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              إعادة معالجة الكلّ
+            </button>
+          </div>
         </div>
 
         {log.length > 0 && (

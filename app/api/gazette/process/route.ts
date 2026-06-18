@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { limit?: number; reprocess?: boolean; issueNumber?: number } = {};
+  let body: { limit?: number; reprocess?: boolean; issueNumber?: number; afterIssue?: number } = {};
   try {
     body = await req.json();
   } catch {
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await processNextBatch({ limit: body.limit ?? 3, reprocess: body.reprocess, issueNumber: body.issueNumber });
+    const result = await processNextBatch({ limit: body.limit ?? 3, reprocess: body.reprocess, issueNumber: body.issueNumber, afterIssue: body.afterIssue });
     return NextResponse.json(result);
   } catch (e) {
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "error" }, { status: 500 });

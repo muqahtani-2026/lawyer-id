@@ -107,9 +107,11 @@ async function processOneIssue(issue: { id: string; issue_number: number; pdf_fi
   return { issue_number: issue.issue_number, status, events: inserted, pending_links: pendingCount, error: errs[0] };
 }
 
-export async function processNextBatch(opts: { limit?: number; budgetMs?: number; reprocess?: boolean; issueNumber?: number } = {}) {
-  const limit = opts.limit ?? 3;
-  const budgetMs = opts.budgetMs ?? 45000;
+export async function processNextBatch(opts: { limit?: number; budgetMs?: number; reprocess?: boolean; issueNumber?: number; afterIssue?: number } = {}) {
+  // مع OCR + الاستخراج المنظّم، العدد الواحد قد يأخذ 10-40 ثانية.
+  // لذا الدفعة الافتراضيّة = 1، والميزانيّة 50 ثانية (احتياط داخل maxDuration=60).
+  const limit = opts.limit ?? 1;
+  const budgetMs = opts.budgetMs ?? 50000;
   const started = Date.now();
   const a = supabaseAdmin;
 
@@ -122,11 +124,17 @@ export async function processNextBatch(opts: { limit?: number; budgetMs?: number
       .eq("issue_number", opts.issueNumber).limit(1);
     issues = r.data as typeof issues;
     listErr = r.error;
+  } else if (opts.reprocess) {
+    // إعادة معالجة الكلّ: نتقدّم برقم العدد (لا بالحالة) لتفادي الدوران على نفس العدد.
+    let q = a.from("gazette_issues").select("id, issue_number, pdf_file_name");
+    if (opts.afterIssue != null) q = q.gt("issue_number", opts.afterIssue);
+    const r = await q.order("issue_number", { ascending: true }).limit(limit);
+    issues = r.data as typeof issues;
+    listErr = r.error;
   } else {
-    const statusFilter = opts.reprocess ? ["pending", "failed", "review", "needs_ocr"] : ["pending"];
     const r = await a
       .from("gazette_issues").select("id, issue_number, pdf_file_name")
-      .in("process_status", statusFilter).order("issue_number", { ascending: true }).limit(limit);
+      .eq("process_status", "pending").order("issue_number", { ascending: true }).limit(limit);
     issues = r.data as typeof issues;
     listErr = r.error;
   }
