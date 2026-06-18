@@ -7,7 +7,49 @@ const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 export function toAsciiDigits(s: string): string {
   return s.replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d)));
 }
+// تحويل الأرقام اللاتينيّة إلى عربيّة-هنديّة (النسق المعتمد للعرض والتخزين).
+export function toArabicDigits(s: string): string {
+  return s.replace(/[0-9]/g, (d) => AR_DIGITS[+d]);
+}
 const D = "[٠-٩0-9]";
+
+// ============================================================
+// تطبيع التاريخ إلى نسق موحّد ثابت: سنة/شهر/يوم بأرقام عربيّة-هنديّة + لاحقة هـ/م.
+// يصحّح انعكاس OCR بمعرفة السنة (الجزء الأكبر، 3-4 خانات، قيمته كبيرة).
+// لا يتنوّع النسق أبدًا: الشهر دائمًا في الوسط.
+// ============================================================
+export function normalizeHijriDate(raw: string | null): string | null {
+  if (!raw) return null;
+  const ascii = toAsciiDigits(raw);
+  // التقاط ثلاثة أجزاء رقميّة مفصولة بـ /
+  const m = ascii.match(/(\d{1,4})\s*\/\s*(\d{1,4})\s*\/\s*(\d{1,4})/);
+  if (!m) return null;
+  const parts = [+m[1], +m[2], +m[3]];
+
+  // تحديد السنة: الجزء صاحب أكبر قيمة (السنة الهجريّة/الميلاديّة دائمًا الأكبر).
+  // مثال: 12/2/1443 → السنة 1443 ؛ 1443/9/19 → السنة 1443.
+  let yearIdx = 0;
+  for (let i = 1; i < 3; i++) if (parts[i] > parts[yearIdx]) yearIdx = i;
+  const year = parts[yearIdx];
+  const rest = parts.filter((_, i) => i !== yearIdx);
+
+  // من البقيّة: الشهر ≤ 12، واليوم هو الآخر. إن كان كلاهما ≤ 12 نُبقي ترتيب الظهور (شهر ثمّ يوم بعد إزالة السنة من الصدر).
+  let month: number, day: number;
+  const [a, b] = rest;
+  if (a <= 12 && b > 12) { month = a; day = b; }
+  else if (b <= 12 && a > 12) { month = b; day = a; }
+  else { month = a; day = b; } // كلاهما ≤ 12: نعتمد الترتيب الأوّل = شهر
+
+  if (!year || !month || !day || month > 12 || day > 31) return null;
+
+  // تحديد اللاحقة: ميلاديّ إن السنة ≥ 1900، وإلّا هجريّ.
+  const isGregorian = year >= 1900;
+  const suffix = isGregorian ? "م" : "هـ";
+
+  // بناء النسق الموحّد: سنة/شهر/يوم بأرقام عربيّة-هنديّة.
+  const ymd = `${year}/${month}/${day}`;
+  return toArabicDigits(ymd) + suffix;
+}
 
 const ANCHORS: { re: RegExp; type: string }[] = [
   { re: new RegExp(`مرسوم\\s+ملكي\\s+رقم\\s*\\(?\\s*م\\s*/?\\s*${D}+\\s*\\)?`, "g"), type: "royal_decree" },
@@ -131,7 +173,34 @@ function findRegulatoryStart(text: string): number {
   return earliest;
 }
 
-export function parseIssue(fullText: string): ParseResult {
+// نوع مبسّط للحدث المنظّم القادم من Mistral (نسخة محليّة لتفادي الاعتماد الدائريّ).
+export type StructuredEventInput = {
+  decision_number?: string | null;
+  decision_date?: string | null;
+  parent_reference?: string | null;
+  event_type?: string | null;
+};
+
+// يبحث عن التاريخ المنظّم المطابق لرقم القرار، ويعيده مطبَّعًا.
+function structuredDateFor(
+  ownNumber: string | null,
+  structured: StructuredEventInput[] | undefined
+): string | null {
+  if (!ownNumber || !structured || !structured.length) return null;
+  const target = toAsciiDigits(ownNumber).replace(/\D/g, "");
+  if (!target) return null;
+  for (const s of structured) {
+    if (!s.decision_number) continue;
+    const sn = toAsciiDigits(String(s.decision_number)).replace(/\D/g, "");
+    if (sn && sn === target && s.decision_date) {
+      const norm = normalizeHijriDate(String(s.decision_date));
+      if (norm) return norm;
+    }
+  }
+  return null;
+}
+
+export function parseIssue(fullText: string, structured?: StructuredEventInput[]): ParseResult {
   const start = findRegulatoryStart(fullText);
   if (start === -1) return { regulatory_section_found: false, events: [] };
   const region = fullText.slice(start);
@@ -162,7 +231,10 @@ export function parseIssue(fullText: string): ParseResult {
     const header = raw.slice(0, 200);
     const parentRef = extractParentReference(raw);
     const { title: parentTitle, kind } = extractParentTitle(raw);
-    const dateH = extractHijriDate(raw);
+    const ownNumber = extractOwnNumber(header);
+    // التاريخ: نفضّل المنظّم (من الرؤية البصريّة، دقيق الترتيب) ثمّ نسقط لتطبيع تاريخ النصّ.
+    const structuredDate = structuredDateFor(ownNumber, structured);
+    const dateH = structuredDate ?? normalizeHijriDate(extractHijriDate(raw));
     const clean = isCleanTitle(parentTitle);
 
     const matchKeys: string[] = [];
@@ -171,7 +243,7 @@ export function parseIssue(fullText: string): ParseResult {
 
     events.push({
       event_type: refineEventType(dedup[i].type, raw),
-      instrument_number: extractOwnNumber(header),
+      instrument_number: ownNumber,
       authority: extractAuthority(header, raw),
       event_date_hijri: dateH,
       event_sort: hijriToSort(dateH),

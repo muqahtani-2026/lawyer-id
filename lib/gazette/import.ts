@@ -72,7 +72,7 @@ async function processOneIssue(issue: { id: string; issue_number: number; pdf_fi
     return { issue_number: issue.issue_number, status: "needs_ocr", events: 0, pending_links: 0, error: error?.message };
   }
 
-  const parsed = parseIssue(ext.text!);
+  const parsed = parseIssue(ext.text!, ext.structuredEvents);
 
   const { error: delErr } = await a.from("legal_events").delete().eq("gazette_issue_id", issue.id).eq("extraction_method", "auto_pdf");
   if (delErr) errs.push(`delete: ${delErr.message}`);
