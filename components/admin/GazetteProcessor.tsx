@@ -44,9 +44,47 @@ export function GazetteProcessor({
   const [remaining, setRemaining] = useState(initialPending);
   const [log, setLog] = useState<string[]>([]);
   const [done, setDone] = useState(false);
+  const [testNum, setTestNum] = useState("");
+  const [testing, setTesting] = useState(false);
 
   function addLog(line: string) {
     setLog((l) => [line, ...l].slice(0, 40));
+  }
+
+  async function processOne() {
+    const n = parseInt(testNum, 10);
+    if (!Number.isFinite(n)) {
+      addLog("أدخل رقم عدد صحيحًا للتجربة.");
+      return;
+    }
+    setTesting(true);
+    addLog(`تجربة العدد ${n} (Mistral OCR)…`);
+    try {
+      const r = await fetch("/api/gazette/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ issueNumber: n }),
+      });
+      const res: BatchResult = await r.json();
+      if (!res.ok) {
+        addLog("خطأ: " + (res.error ?? "غير معروف"));
+      } else if (res.results.length === 0) {
+        addLog(`العدد ${n}: غير موجود في قاعدة البيانات.`);
+      } else {
+        for (const item of res.results) {
+          const label = STATUS_LABEL[item.status] ?? item.status;
+          addLog(
+            `العدد ${item.issue_number}: ${label}` +
+              (item.events ? ` — ${item.events} حدثًا` : "") +
+              (item.pending_links ? ` (${item.pending_links} بانتظار ربط)` : "") +
+              (item.error ? ` — ${item.error}` : "")
+          );
+        }
+      }
+    } catch (e) {
+      addLog("خطأ في الاتصال: " + (e instanceof Error ? e.message : ""));
+    }
+    setTesting(false);
   }
 
   async function processAll() {
@@ -93,6 +131,30 @@ export function GazetteProcessor({
 
   return (
     <div className="space-y-5">
+      {/* بطاقة تجربة عدد واحد — للاختبار الآمن قبل المعالجة الجماعيّة */}
+      <div className="rounded-xl border border-[#4a9eff] bg-[#0f1f3d] p-5">
+        <div className="font-semibold text-[#e6f1ff]">تجربة عدد واحد (Mistral OCR)</div>
+        <div className="mt-1 text-sm text-[#8892b0]">
+          أدخل رقم عدد لإعادة معالجته وحده بمحرّك OCR الجديد — للتحقّق من جودة النصّ قبل التعميم.
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            type="number"
+            value={testNum}
+            onChange={(e) => setTestNum(e.target.value)}
+            placeholder="مثال: 5111"
+            className="w-40 rounded-lg border border-[#1d3461] bg-[#0a192f] px-3 py-2 font-mono text-sm text-[#e6f1ff] placeholder:text-[#8892b0] focus:border-[#4a9eff] focus:outline-none"
+          />
+          <button
+            onClick={processOne}
+            disabled={testing || running}
+            className="rounded-lg bg-[#4a9eff] px-5 py-2 font-semibold text-[#0a192f] transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {testing ? "جارٍ التجربة…" : "جرّب هذا العدد"}
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-xl border border-[#1d3461] bg-[#0f1f3d] p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

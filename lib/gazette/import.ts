@@ -107,16 +107,29 @@ async function processOneIssue(issue: { id: string; issue_number: number; pdf_fi
   return { issue_number: issue.issue_number, status, events: inserted, pending_links: pendingCount, error: errs[0] };
 }
 
-export async function processNextBatch(opts: { limit?: number; budgetMs?: number; reprocess?: boolean } = {}) {
+export async function processNextBatch(opts: { limit?: number; budgetMs?: number; reprocess?: boolean; issueNumber?: number } = {}) {
   const limit = opts.limit ?? 3;
   const budgetMs = opts.budgetMs ?? 45000;
   const started = Date.now();
   const a = supabaseAdmin;
 
-  const statusFilter = opts.reprocess ? ["pending", "failed", "review", "needs_ocr"] : ["pending"];
-  const { data: issues, error: listErr } = await a
-    .from("gazette_issues").select("id, issue_number, pdf_file_name")
-    .in("process_status", statusFilter).order("issue_number", { ascending: true }).limit(limit);
+  // وضع التجربة: معالجة عدد واحد محدّد بالرقم (يتجاوز فلتر الحالة) — للاختبار الآمن.
+  let issues: Array<{ id: string; issue_number: number; pdf_file_name: string }> | null = null;
+  let listErr: { message: string } | null = null;
+  if (opts.issueNumber != null) {
+    const r = await a
+      .from("gazette_issues").select("id, issue_number, pdf_file_name")
+      .eq("issue_number", opts.issueNumber).limit(1);
+    issues = r.data as typeof issues;
+    listErr = r.error;
+  } else {
+    const statusFilter = opts.reprocess ? ["pending", "failed", "review", "needs_ocr"] : ["pending"];
+    const r = await a
+      .from("gazette_issues").select("id, issue_number, pdf_file_name")
+      .in("process_status", statusFilter).order("issue_number", { ascending: true }).limit(limit);
+    issues = r.data as typeof issues;
+    listErr = r.error;
+  }
   if (listErr) return { ok: false, error: `list: ${listErr.message}`, processed: 0, remaining: -1, results: [] as ProcessSummary[] };
 
   const results: ProcessSummary[] = [];

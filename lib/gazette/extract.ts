@@ -97,14 +97,14 @@ export async function extractGazetteText(fileName: string): Promise<ExtractResul
 
     // الطبقة 1: OCR للنصّ العربيّ النظيف.
     const ocrText = await mistralOcr(fileName);
-    let text = ocrText;
     let method = "mistral_ocr";
 
     // الطبقة 2 (الخيار ب): دمج الأرقام/التواريخ من طبقة النصّ الأصليّة — تُفعَّل بعد التحقّق.
-    // (تُبنى في الخطوة التالية بعد نجاح OCR الصرف؛ العلم يبقى false الآن.)
+    let text = ocrText;
     if (MERGE_NATIVE_NUMERALS) {
       method = "mistral_ocr+native_numerals";
-      // سيُضاف منطق الدمج هنا في المرحلة التالية.
+      // سيُضاف منطق الدمج هنا في المرحلة التالية (يعيد تعيين text).
+      text = ocrText;
     }
 
     const charCount = text.length;
