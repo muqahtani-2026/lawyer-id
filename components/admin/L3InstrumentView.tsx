@@ -20,6 +20,7 @@ export function L3InstrumentView({ detail }: { detail: L3InstrumentDetail }) {
   const [openEvent, setOpenEvent] = useState<string | null>(null);
   const events = detail.events;
   const hasFullText = detail.articles.length > 0;
+  const hasRawFullText = !!detail.full_text && detail.full_text.length > 100;
 
   // مجموع المواد المعدّلة عبر كلّ التعديلات (للتلوين في النصّ الكامل)
   const amendedArticles = new Set<string>();
@@ -32,7 +33,7 @@ export function L3InstrumentView({ detail }: { detail: L3InstrumentDetail }) {
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-content">النصّ النظاميّ النافذ</h2>
           <span className="font-mono text-xs text-[#8892b0]">
-            {hasFullText ? `${detail.articles.length} مادة` : "النصّ الكامل غير متوفّر بعد"}
+            {hasFullText ? `${detail.articles.length} مادة` : hasRawFullText ? "النصّ الكامل" : "غير متوفّر بعد"}
           </span>
         </div>
 
@@ -64,12 +65,23 @@ export function L3InstrumentView({ detail }: { detail: L3InstrumentDetail }) {
               );
             })}
           </div>
+        ) : hasRawFullText ? (
+          <div>
+            <p className="mb-3 font-mono text-xs text-[#8892b0]">
+              النصّ الكامل للنظام (من هيئة الخبراء). المواد المذكورة في التعديلات أدناه:
+              {[...amendedArticles].sort((a, b) => +a - +b).slice(0, 30).join("، ") || " —"}
+            </p>
+            <div className="max-h-[600px] overflow-y-auto rounded-lg border border-white/10 bg-black/20 p-4">
+              <p className="whitespace-pre-wrap text-sm leading-8 text-content/90">
+                {detail.full_text}
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.01] p-4">
             <p className="text-sm leading-7 text-muted">
-              النصّ الموحّد الكامل لمواد هذا النظام لم يُجلب بعد. جريدة أمّ القرى تنشر التعديلات
-              (المادة المعدّلة)، لا النصّ الكامل. سيُملأ هذا القسم تلقائيًّا عند جلب النصّ الموحّد من
-              المصدر الرسميّ (هيئة الخبراء / موقع الأنظمة)، وستُلوّن المواد المعدّلة فيه.
+              النصّ الموحّد الكامل لمواد هذا النظام لم يُجلب بعد. سيُملأ عند جلب النصّ الموحّد من
+              المصدر الرسميّ، وستُلوّن المواد المعدّلة فيه.
             </p>
             <p className="mt-2 font-mono text-xs text-[#8892b0]">
               المواد المعدّلة عبر التسلسل أدناه: {[...amendedArticles].sort((a, b) => +a - +b).slice(0, 30).join("، ") || "—"}

@@ -46,6 +46,10 @@ export type L3InstrumentDetail = {
   is_commercial: boolean;
   full_text_status: string;
   is_repealed: boolean;
+  full_text: string | null;
+  article_count: number;
+  reference_number: string | null;
+  issue_date_hijri: string | null;
   articles: L3Article[];
   events: L3TimelineEvent[];
 };
@@ -79,7 +83,7 @@ export async function getL3Counts() {
 export async function getL3InstrumentDetail(id: string): Promise<L3InstrumentDetail | null> {
   const { data: inst } = await supabaseAdmin
     .from("l3_instruments")
-    .select("id, canonical_name, domain, is_commercial, full_text_status, is_repealed")
+    .select("id, canonical_name, domain, is_commercial, full_text_status, is_repealed, full_text, article_count, reference_number, issue_date_hijri")
     .eq("id", id)
     .single();
   if (!inst) return null;
